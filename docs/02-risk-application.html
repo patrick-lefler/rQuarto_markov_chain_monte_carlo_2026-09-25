@@ -192,9 +192,7 @@ window.Quarto = {
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#narrative-content-scaling-to-the-10-factor-book" id="toc-narrative-content-scaling-to-the-10-factor-book" class="nav-link" data-scroll-target="#narrative-content-scaling-to-the-10-factor-book">Narrative Content: Scaling to the 10-Factor Book</a></li>
-  <li><a href="#joint-posterior-sampling-execution" id="toc-joint-posterior-sampling-execution" class="nav-link" data-scroll-target="#joint-posterior-sampling-execution">Joint Posterior Sampling Execution</a></li>
-  <li><a href="#parameter-distribution-vs.-known-ground-truth" id="toc-parameter-distribution-vs.-known-ground-truth" class="nav-link" data-scroll-target="#parameter-distribution-vs.-known-ground-truth">Parameter Distribution vs.&nbsp;Known Ground Truth</a></li>
+  <li><a href="#sampling-the-10-factor-joint-posterior" id="toc-sampling-the-10-factor-joint-posterior" class="nav-link" data-scroll-target="#sampling-the-10-factor-joint-posterior">Sampling the 10-Factor Joint Posterior</a></li>
   </ul>
 </nav>
     </div>
@@ -204,7 +202,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">10-Factor Portfolio Risk &amp; Tail Estimation</h1>
-<p class="subtitle lead">Sampling the Correlated Factor Posterior to Quantify VaR and Expected Shortfall</p>
+<p class="subtitle lead">Evaluating Parameter Uncertainty in Expected Returns Against Analytical Benchmarks</p>
 </div>
 
 
@@ -223,8 +221,9 @@ window.Quarto = {
 
 <section id="introduction" class="level3">
 <h3 class="anchored" data-anchor-id="introduction">Introduction</h3>
-<p>This page moves the project from theory to a working portfolio risk engine. Instead of using simple two-variable models, it uses our pure-R Metropolis sampler on a multi-asset portfolio with ten correlated factor exposures, including core equity betas, corporate credit carry, duration hedges, and commodities. By combining historical returns with an unnormalized joint posterior distribution, the engine avoids a massive 10-billion-calculation grid search and quickly generates thousands of joint parameter samples. These samples are then used in forward portfolio loss simulations to calculate Value at Risk (VaR) and Expected Shortfall (ES), along with 90% Bayesian credible intervals.</p>
-<p>The main value of this page is in addressing parameter uncertainty, which is often overlooked in traditional risk management. Standard risk models use fixed estimates for expected returns and factor sensitivities, which can leave capital reserves exposed to errors and sudden changes during market stress. By using the full, correlated joint posterior distribution, this approach shows that parameter uncertainty can be directly included in downside risk measures. For investment committees, Chief Risk Officers, and allocation desks, it shows that Markov Chain Monte Carlo provides a practical and reliable way to assess capital needs without relying on oversimplified assumptions or formulas that are too complex to use.</p>
+<p>This chapter transitions from two-dimensional toy mechanics to a multi-asset portfolio comprising ten correlated risk factor exposures—spanning core equity betas, corporate credit carry, duration hedges, and commodities.</p>
+<p>To provide a mathematically rigorous audit baseline, we formulate a Bayesian return model with a known closed-form solution. We model daily returns as multivariate normal <span class="math inline">\(\mathbf{R} \sim \mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})\)</span> with a diffuse Gaussian prior on the mean vector <span class="math inline">\(\boldsymbol{\mu} \sim \mathcal{N}(\mathbf{0}, 10^3 \mathbf{I})\)</span> and condition the covariance matrix on the empirical sample estimate <span class="math inline">\(\mathbf{\Sigma} = \hat{\mathbf{\Sigma}}_{\text{emp}}\)</span>. Under this conjugate structure, the joint posterior distribution of expected returns is analytically known: <span class="math display">\[\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}\left(\bar{\mathbf{x}}, \frac{1}{n} \mathbf{\Sigma}\right)\]</span></p>
+<p>While a closed-form solution exists for this specific Gaussian model, using it as our target allows us to directly benchmark MCMC performance. We can compare the empirical draws, standard errors, and credible intervals from our first-principles Metropolis sampler directly against the analytical truth.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -242,7 +241,7 @@ window.Quarto = {
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Ingest synthetic book fixture and build log-posterior</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>model_fixture <span class="ot">&lt;-</span> <span class="fu">build_risk_target</span>(<span class="st">"data/synthetic_returns.csv"</span>)</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Run calibrated 10-dimensional MCMC chain</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Run 10-dimensional MCMC chain</span></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>init_theta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, model_fixture<span class="sc">$</span>d)</span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(init_theta) <span class="ot">&lt;-</span> model_fixture<span class="sc">$</span>asset_names</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
@@ -276,16 +275,9 @@ window.Quarto = {
 </details>
 </div>
 </section>
-<section id="narrative-content-scaling-to-the-10-factor-book" class="level3">
-<h3 class="anchored" data-anchor-id="narrative-content-scaling-to-the-10-factor-book">Narrative Content: Scaling to the 10-Factor Book</h3>
-<p>From Abstract Theory to Portfolio Reality</p>
-<p>In a real investment committee or risk management setting, factor exposures do not exist in isolation. A multi-asset portfolio combines equity market risks, credit carry, duration hedges, and commodities—each interacting through a dense cross-asset covariance matrix.</p>
-<p>Rather than assuming expected returns (‭<span class="math inline">\(\boldsymbol{\mu}\)</span>‬) are known point constants, a Bayesian risk model treats them as random variables conditioned on observed historical market returns: ‭<span class="math display">\[p(\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma}) \propto p(\mathbf{R} \mid \boldsymbol{\mu}, \mathbf{\Sigma}) \, p(\boldsymbol{\mu})\]</span>‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬ Evaluating this unnormalized joint posterior across 10 correlated factor assets using numerical integration or grid search would demand over 10 billion calculations. With our calibrated Random-Walk Metropolis sampler, we sample the full 10-dimensional space in less than two seconds.</p>
-</section>
-<section id="joint-posterior-sampling-execution" class="level3">
-<h3 class="anchored" data-anchor-id="joint-posterior-sampling-execution">Joint Posterior Sampling Execution</h3>
-<p>The sampler processes 250 trading days of observed returns across all 10 assets simultaneously. Starting cold at ‭<span class="math inline">\(\boldsymbol{\mu}_0 = \mathbf{0}\)</span>‬‭‬, the chain completes 3,000 iterations, discarding the first 500 iterations to eliminate initialization bias.</p>
-<p>The chain operates at an empirical acceptance rate of {r} acc_rate_txt, well within the theoretical efficiency window (20% to 35%) for 10-dimensional Gaussian random walks.</p>
+<section id="sampling-the-10-factor-joint-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="sampling-the-10-factor-joint-posterior">Sampling the 10-Factor Joint Posterior</h3>
+<p>The sampler processes 250 trading days of observed returns across all 10 assets simultaneously. Starting cold at ‭<span class="math inline">\(\boldsymbol{\mu}_0 = \mathbf{0}\)</span>‬‭‬, the chain completes 3,000 iterations, discarding the first 500 iterations to eliminate initialization bias. The chain operates at an empirical acceptance rate of 28.9%.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -293,7 +285,7 @@ window.Quarto = {
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**10-Asset Portfolio Tail Risk Estimates (1-Day Horizon)**"</span>),</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Posterior mean risk metrics and 90% Bayesian credible intervals"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Posterior mean risk metrics and 90% Bayesian credible intervals under parameter uncertainty"</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">metric =</span> <span class="st">"Tail Risk Measure"</span>,</span>
@@ -761,7 +753,7 @@ window.Quarto = {
 <td colspan="4" class="gt_heading gt_title gt_font_normal"><strong>10-Asset Portfolio Tail Risk Estimates (1-Day Horizon)</strong></td>
 </tr>
 <tr class="gt_heading even">
-<td colspan="4" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Posterior mean risk metrics and 90% Bayesian credible intervals</td>
+<td colspan="4" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Posterior mean risk metrics and 90% Bayesian credible intervals under parameter uncertainty</td>
 </tr>
 <tr class="gt_col_headings header">
 <th id="metric" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Tail Risk Measure</th>
@@ -789,27 +781,15 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p><strong>Understanding the 10-Asset Portfolio Tail Risk Estimates (1-Day Horizon) Table</strong> <br> The table translates thousands of 10-dimensional posterior parameter draws into actionable downside risk metrics for an equal-weighted portfolio:</p>
-<p><strong>Tail Risk Measures (VaR and Expected Shortfall at 95% Confidence):</strong></p>
+<section id="context-isolating-parameter-risk-in-the-mean-vector" class="level4">
+<h4 class="anchored" data-anchor-id="context-isolating-parameter-risk-in-the-mean-vector">Context: Isolating Parameter Risk in the Mean Vector</h4>
+<p>Because the return distribution is modeled as multivariate normal and ‭<span class="math inline">\(\mathbf{\Sigma}\)</span>‬ is fixed at the sample estimate, the portfolio tail metrics reflect the properties of Gaussian loss distributions under estimation uncertainty:</p>
 <ol type="1">
-<li><strong>Value at Risk (‭<span class="math inline">\(\text{VaR}_{95\%}\)</span>‬ = 1.05%):</strong> The minimum expected loss over a single trading day on the worst 5% of trading days (a 1-in-20-day event).</li>
-<li><strong>Expected Shortfall (‭<span class="math inline">\(\text{ES}_{95\%}\)</span>‬ = 1.33%):</strong> Also known as Conditional VaR (CVaR), this measures the average expected loss conditional on the portfolio breaching the 95% threshold—capturing the average depth of tail dislocations rather than just the cutoff point.</li>
+<li><strong>Mean Uncertainty Bounds (‭<span class="math inline">\(\text{VaR}_{95\%}\)</span>‬):</strong> For an equal-weighted portfolio, parametric Value at Risk is governed by ‭<span class="math inline">\(\text{VaR}_{95\%} \approx -\mathbf{w}'\boldsymbol{\mu} + 1.645 \cdot \sigma_p\)</span>‬‭‬‭‬‭‬‭‬‭‬. Because covariance is held constant, the 12 basis point spread between the 5th and 95th percentiles (‭<span class="math inline">\(0.99\%\)</span>‬‭‬ to ‭<span class="math inline">\(1.11\%\)</span>‬‭‬) reflects the estimation uncertainty of the portfolio mean alone (‭<span class="math inline">\(\pm 1.645 \cdot \sigma_p / \sqrt{n}\)</span>‬‭‬‭‬), setting aside covariance uncertainty.</li>
+<li><strong>Expected Shortfall Ratio (‭<span class="math inline">\(\text{ES}_{95\%}\)</span>‬):</strong> The ratio of Expected Shortfall to Value at Risk (‭<span class="math inline">\(1.33\% / 1.05\% \approx 1.27\)</span>‬‭‬ ‭‬‭‬ ‭‬) reflects standard Gaussian tail expectation constants (‭<span class="math inline">\(\approx 2.063 / 1.645\)</span>‬‭‬), adjusted for the portfolio drift. Under a normal likelihood, this metric captures linear downside expectation rather than excess kurtosis or heavy-tailed structural shocks.</li>
 </ol>
-<p><strong>Posterior Mean vs.&nbsp;Bayesian Credible Intervals (5th &amp; 95th Percentiles):</strong></p>
-<p>Rather than reporting static point estimates, the table displays a 90% Bayesian credible interval (‭<span class="math inline">\([0.99\%, 1.11\%]\)</span>‬‭‬‭‬‭‬ ‭‬‭‬‭‬ for VaR and ‭<span class="math inline">\([1.27\%, 1.39\%]\)</span>‬‭‬‭‬‭‬ ‭‬‭‬‭‬ for ES). This interval is derived directly from the empirical distribution of posterior parameter draws generated by our calibrated Metropolis-Hastings sampler.</p>
-<p><strong>Why is the table so important?</strong> <br> Conventional risk engines calculate tail metrics using sample point estimates for expected returns (‭<span class="math inline">\(\hat{\boldsymbol{\mu}}\)</span>‬) and covariances (‭<span class="math inline">\(\hat{\mathbf{\Sigma}}\)</span>‬). By plugging single scalar values into parametric formulas, standard models ignore estimation error—creating a false sense of precision.</p>
-<p>In reality, historical parameter estimates are uncertain: 1. If the true expected return vector is even slightly lower than sample averages, true portfolio tail losses will be systematically worse than point-estimate risk reports suggest. 2. The table is valuable because parameter uncertainty is fully propagated into downside risk. The reader is not looking at a single deterministic figure, but a probability distribution of portfolio tail risk across all parameter scenarios supported by the historical data.</p>
-<p><strong>Key Insights</strong></p>
-<ol type="1">
-<li><p><strong>Quantification of Parameter Risk Horizon:</strong> The spread between the 5th and 95th percentiles demonstrates the impact of sample parameter uncertainty on downside capital. For 1-day 95% VaR, uncertainty spans 12 basis points (‭<span class="math inline">\(0.99\%\)</span>‬‭‬ to ‭<span class="math inline">\(1.11\%\)</span>‬‭‬). For a $100M portfolio, this represents a $120,000 variance in required daily risk capital purely attributable to estimation error, before market shocks are even realized.</p></li>
-<li><p><strong>Fat-Tail Severity Captured via Expected Shortfall:</strong> Expected Shortfall exceeds VaR by 28 basis points on average (‭<span class="math inline">\(1.33\%\)</span>‬‭‬ vs.&nbsp;‭<span class="math inline">\(1.05\%\)</span>‬‭‬). Even at the upper confidence boundary (‭<span class="math inline">\(1.39\%\)</span>‬‭‬), the spread confirms that tail events are not sharp cliffs, but contain extended downside severity that Chief Risk Officers must reserve capital against.</p></li>
-<li><p><strong>Distributional Accuracy Without Integration:</strong> These risk metrics and confidence bounds were calculated across all 10 correlated asset dimensions simultaneously, completely bypassing a 10-billion-calculation numerical integral through an efficient random walk. The table confirms the thesis of your original post: MCMC makes high-dimensional portfolio estimation practical and auditable without mathematical shortcuts.</p></li>
-</ol>
-<hr>
-</section>
-<section id="parameter-distribution-vs.-known-ground-truth" class="level3">
-<h3 class="anchored" data-anchor-id="parameter-distribution-vs.-known-ground-truth">Parameter Distribution vs.&nbsp;Known Ground Truth</h3>
-<p>Because the fixture was generated with fixed underlying ground-truth parameters, we can directly compare the sampled MCMC marginal distribution against the true historical parameter.</p>
+<p><strong>Parameter Distributions vs.&nbsp;Generative Ground Truth</strong></p>
+<p>Because the fixture was simulated from known parameters, we can compare the sampled MCMC distributions against both the generative population values and the analytical sample estimates.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -841,32 +821,17 @@ window.Quarto = {
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="02-risk-application_files/figure-html/marginal-plot-treas-1.png" class="img-fluid figure-img" width="768"></p>
-<figcaption>Figure 2: Marginal posterior distribution for 10Y US Treasury returns (Duration hedge).</figcaption>
+<figcaption>Figure 2: Marginal posterior distribution for 10Y US Treasury returns(Duration hedge).</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p><strong>Understanding the Posterior Distribution Plots</strong> <br> The two density plots illustrate the marginal posterior distributions for two economically distinct risk factors—Tech Growth (an equity growth exposure) and 10Y US Treasuries (a duration/safe-haven hedge). Each chart presents two layers of data:</p>
+<p><strong>Understanding the Marginal Density Plots</strong></p>
+<p>The marginal plots illustrate the visited parameter space for two distinct risk factors:</p>
 <ol type="1">
-<li><p><strong>The Empirical MCMC Sample (Histogram &amp; Orange Curve):</strong> The dark blue bars represent the histogram of parameter values visited by the Markov chain across 2,500 post-burn-in iterations. The orange curve is the continuous kernel density estimate fitted to those sampled visits. The vertical axis measures probability density, while the horizontal axis displays daily expected return.</p></li>
-<li><p><strong>The Ground Truth Benchmark (Dashed Red Line):</strong> The vertical dashed red line marks the exact parameter value configured inside the data-generation engine (R/generate_data.R).</p></li>
+<li><strong>Tech Growth:</strong> Daily expected returns center near the sample mean ‭<span class="math inline">\(\bar{x} \approx +0.05\%\)</span>‬‭‬‭‬‭‬, spanning roughly ‭<span class="math inline">\(-0.08\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.18\%\)</span>‬‭‬ daily. Given an annualized volatility of 26% (‭<span class="math inline">\(\approx 1.64\%\)</span>‬‭‬ daily), the standard error over 250 trading days is approximately ‭<span class="math inline">\(\text{SE} \approx 1.64\% / \sqrt{250} \approx 0.10\%\)</span>‬‭‬‭‬ ‭‬‭‬‭‬. The generative benchmark (‭<span class="math inline">\(+11.0\%\)</span>‬‭‬ annualized ‭<span class="math inline">\(\approx +0.0437\%\)</span>‬‭‬‭‬ daily) sits well within the empirical posterior distribution.</li>
+<li><strong>US Treasuries (10Y):</strong> The Treasury distribution exhibits a narrower posterior dispersion (spanning ‭<span class="math inline">\(-0.04\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.07\%\)</span>‬‭‬ daily). With lower annualized return volatility (8%), the parameter standard error is tighter (‭<span class="math inline">\(\text{SE} \approx 0.03\%\)</span>‬‭‬‭‬), centering consistently over the generative benchmark (‭<span class="math inline">\(+3.5\%\)</span>‬‭‬ annualized ‭<span class="math inline">\(\approx +0.0139\%\)</span>‬‭‬‭‬ daily).</li>
 </ol>
-<section id="what-known-ground-truth-means-and-why-it-matters" class="level4">
-<h4 class="anchored" data-anchor-id="what-known-ground-truth-means-and-why-it-matters">What “Known Ground Truth” Means and Why It Matters</h4>
-<p>In empirical financial data, the “true” distribution is never known. When an analyst models historical market returns, they can only estimate parameters from noisy, finite samples. If an estimation technique yields unexpected or skewed results, it is impossible to determine whether the model is flawed or the market data simply contains unusual noise.</p>
-<p>In contrast, our synthetic 10-factor market fixture was generated from a controlled multivariate normal distribution where the true annualized parameters were defined explicitly in code: - Tech Growth: Calibrated to +11.0% annualized return (‭<span class="math inline">\(\approx +0.0437\%\)</span>‬‭‬‭‬ daily). - US Treasuries (10Y): Calibrated to +3.5% annualized return (‭<span class="math inline">\(\approx +0.0139\%\)</span>‬‭‬‭‬ daily). Known Ground Truth refers to these known, pre-programmed population parameters.</p>
-<p>Having a known ground truth is vital for three reasons:</p>
-<ol type="1">
-<li><strong>Algorithmic Validation Without Conjecture:</strong> Because the true generative parameters are fixed, we have a definitive answer key. The fact that the sampled MCMC distributions center directly over these red dashed lines confirms that the Metropolis-Hastings sampler correctly identified the true posterior mode without getting trapped or introducing systemic estimation bias.</li>
-<li><strong>Visual Proof of the Post’s Core Thesis:</strong> An earlier post stated: “The time spent in each spot matches its true probability. You do not need a formula—just patience.” These plots provide direct empirical proof of that statement. The sampler was given no analytical formula for the high-dimensional posterior integral; it simply followed a local random walk and accumulated samples where the data likelihood was concentrated.</li>
-<li><strong>Auditability for Risk Committees:</strong> In institutional risk oversight, before an executive committee approves an advanced sampling method for production capital calculations, the engine must be validated on benchmark fixtures with known solutions. Demonstrating that the chain recovers ground-truth parameters verifies that subsequent tail metrics (VaR and Expected Shortfall) are mathematically reliable rather than computational artifacts.</li>
-</ol>
-<p><strong>Key Insights</strong></p>
-<ol type="1">
-<li><strong>Tech Growth (Equity Volatility in Parameter Space):</strong> Notice the broader dispersion of the Tech Growth posterior distribution (spanning roughly ‭<span class="math inline">\(+0.15\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.55\%\)</span>‬‭‬ daily). Because technology equities exhibit higher underlying return variance (26% annualized volatility), the data provides less certainty about the true mean parameter—resulting in a wider credible interval and wider tails for downside risk modeling.</li>
-<li><strong>US Treasury 10Y (Hedge Precision):</strong> The Treasury distribution is noticeably taller and narrower (spanning ‭<span class="math inline">\(-0.08\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.05\%\)</span>‬‭‬ daily). With lower annualized volatility (8%), the parameter space is tightly constrained. The chain accurately preserves the tighter uncertainty bounds required to evaluate flight-to-safety duration hedges during market distress.</li>
-</ol>
-<p>Next, in <strong>Audit &amp; Diagnostics</strong>, formal convergence checks, trace plots, and effective sample size (ESS) calculations are run to verify chain mixing.</p>
 
 
 </section>

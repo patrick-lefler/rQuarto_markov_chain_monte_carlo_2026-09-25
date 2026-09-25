@@ -9,7 +9,7 @@
 <meta name="author" content="Patrick Lefler">
 <meta name="dcterms.date" content="2026-09-24">
 
-<title>The Brilliance of Markov Chain Monte Carlo – Markov Chain Monte Carlo in Action</title>
+<title>The Mechanics of Markov Chain Monte Carlo – Markov Chain Monte Carlo in Action</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -195,7 +195,7 @@ window.Quarto = {
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#plain-language-translation-how-it-works" id="toc-plain-language-translation-how-it-works" class="nav-link" data-scroll-target="#plain-language-translation-how-it-works">Plain-Language Translation: How It Works</a></li>
-  <li><a href="#the-high-dimensional-dilemma" id="toc-the-high-dimensional-dilemma" class="nav-link" data-scroll-target="#the-high-dimensional-dilemma">The High-Dimensional Dilemma</a></li>
+  <li><a href="#the-dimensional-scaling-challenge" id="toc-the-dimensional-scaling-challenge" class="nav-link" data-scroll-target="#the-dimensional-scaling-challenge">The Dimensional Scaling Challenge</a></li>
   <li><a href="#the-random-walk-engine" id="toc-the-random-walk-engine" class="nav-link" data-scroll-target="#the-random-walk-engine">The Random Walk Engine</a></li>
   <li><a href="#project-structure-roadmap" id="toc-project-structure-roadmap" class="nav-link" data-scroll-target="#project-structure-roadmap">Project Structure &amp; Roadmap</a></li>
   </ul>
@@ -206,8 +206,8 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">The Brilliance of Markov Chain Monte Carlo</h1>
-<p class="subtitle lead">Taming High-Dimensional Risk Models Through Random Walks</p>
+<h1 class="title">The Mechanics of Markov Chain Monte Carlo</h1>
+<p class="subtitle lead">Benchmarking First-Principles Parameter Exploration in Correlated Factor Spaces</p>
 </div>
 
 
@@ -234,7 +234,7 @@ window.Quarto = {
 <div>
   <div class="abstract">
     <div class="block-title">Abstract</div>
-    Portfolio risk models with correlated multi-asset exposures require evaluating a joint posterior distribution that traditional grid integration cannot handle: a ten-asset model demands roughly ten billion grid evaluations, and twenty assets pushes past what any machine can hold in memory. This project implements a Metropolis-Hastings sampler from first principles in pure R, with no external packages, and applies it to a ten-factor portfolio spanning equity, credit, duration, and commodity exposures. Rather than solving the posterior integral directly, the sampler takes a random walk through parameter space, favoring high-probability regions while occasionally accepting worse moves to avoid local traps, and converges on the true distribution in seconds rather than requiring an intractable calculation. Calibrating the proposal step size proves to matter as much as the algorithm itself: a 34.2% acceptance rate mixes efficiently, while step sizes tuned too small or too large leave the chain stuck. Sampling the ten-factor joint posterior over 250 trading days of returns produces Value at Risk (1.05%) and Expected Shortfall (1.33%) with full 90% Bayesian credible intervals, propagating parameter uncertainty into downside risk that point-estimate models ignore. Validation against a synthetic dataset with known ground-truth parameters confirms the sampler recovers the true posterior mode without bias, and multi-chain convergence checks, autocorrelation decay, and Effective Sample Size calculations establish the audit trail model-validation teams require before production use.
+    Evaluating joint factor distributions in portfolio risk models often encounters the curse of dimensionality, where deterministic numerical grid integration scales exponentially with dimension (<span class="math inline">\(K^D\)</span>). This project implements a Random-Walk Metropolis sampler from first principles in pure R, without external sampler libraries, to assess parameter uncertainty across a 10-factor portfolio spanning equity, credit, duration, and commodity exposures. To provide a rigorous validation baseline, we examine a multivariate Gaussian return model where the covariance matrix is conditioned on sample estimates, yielding an exact analytical posterior: <span class="math inline">\(\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \frac{1}{n}\mathbf{\Sigma})\)</span>. This tractable benchmark allows us to directly evaluate MCMC visit frequencies and tail risk percentiles against closed-form mathematical truth. Propagating sampled parameter draws into Value at Risk (1.05%) and Expected Shortfall (1.33%) quantifies the shift in downside capital attributable to parameter uncertainty in the mean vector (<span class="math inline">\(\pm 1.645 \cdot \sigma_p / \sqrt{n}\)</span>). Diagnostic audits—including multi-chain trace evaluations, autocorrelation profiles, and robust Effective Sample Size (ESS) calculations following Vehtari et al.&nbsp;(2021)—demonstrate that while isotropic random-walk proposals successfully identify the posterior mode, unscaled jump proposals on correlated distributions incur substantial serial correlation, underscoring the operational necessity of covariance preconditioning in institutional risk engines.
   </div>
 </div>
 
@@ -244,36 +244,33 @@ window.Quarto = {
 
 <section id="introduction" class="level3">
 <h3 class="anchored" data-anchor-id="introduction">Introduction</h3>
-<p>Markov Chain Monte Carlo (MCMC) is a group of computer algorithms that help sample from complicated, high-dimensional probability distributions when direct calculation is not possible. In quantitative risk management, figuring out the combined risk of a portfolio with many assets means estimating many connected factors at once, like expected returns, changing volatilities, and how assets move together. Traditional methods, such as grid integration, become unworkable as the number of parameters grows, making these complex models too difficult to solve directly.</p>
-<p>MCMC solves this problem by using a smart random walk instead of direct calculations. The algorithm follows rules like the Metropolis-Hastings method to decide which steps to take, usually moving to more likely options but sometimes choosing less likely ones to make sure all areas are explored. Over time, the algorithm spends time in each region based on how likely it is, so the results match the true probability distribution without needing to calculate a difficult normalizing constant.</p>
-<p>For risk professionals, MCMC turns problems that are too complex to solve directly into practical sampling tasks. Rather than relying on simple but risky assumptions like fixed parameters or independent factors, teams can model all the uncertainty in their portfolios. This is important for accurately measuring downside risk. By using MCMC results in Value at Risk (VaR) and Expected Shortfall (ES) models, teams make sure that uncertainty is included in risk estimates, helping to avoid underestimating capital needs during market stress.</p>
+<p>Markov Chain Monte Carlo (MCMC) is a computational class of algorithms designed to sample from complex, high-dimensional probability distributions when analytical integration is intractable. In portfolio risk management, evaluating joint risk across multiple assets requires characterizing dependent parameters simultaneously—including factor means, volatilities, and cross-asset correlations. For non-standard priors or complex likelihoods, deterministic numerical grid integration scales exponentially with dimension (‭<span class="math inline">\(K^D\)</span>‬), quickly exceeding practical computational limits. MCMC bypasses deterministic grid mapping by replacing brute-force evaluation with an informed random walk. Guided by transition rules such as the Metropolis-Hastings criterion, the sampler proposes local moves, accepting higher-density coordinates and probabilistically accepting lower-density proposals. Over extended sampling runs, the chain visits parameter states in proportion to their underlying posterior density, mapping the target space without evaluating intractable normalizing constants. In this demonstration, we focus on isolating parameter estimation uncertainty. Using a controlled multivariate Gaussian portfolio framework, we deliberately pair our pure-R Metropolis sampler against a model with an exact analytical solution: ‭<span class="math inline">\(\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \frac{1}{n}\mathbf{\Sigma})\)</span>‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬. By holding covariance fixed and evaluating expected returns against this closed-form baseline, we provide an auditable environment to examine convergence, proposal efficiency, and the propagation of parameter uncertainty into Value at Risk (VaR) and Expected Shortfall (ES).</p>
+<hr>
 </section>
 <section id="plain-language-translation-how-it-works" class="level3">
 <h3 class="anchored" data-anchor-id="plain-language-translation-how-it-works">Plain-Language Translation: How It Works</h3>
-<p>Imagine being placed on a huge, dark mountain range with only a small flashlight to guide you, and your task is to map out the highest peaks and ridges. You can’t see the entire landscape at once, and walking every part would take forever. Instead, you take small, random steps. If a step goes uphill, you take it. Sometimes, you also take a downhill step so you don’t get stuck on one small hill.</p>
-<p>Since you spend most of your time on the high peaks and only pass quickly through the valleys, your path ends up showing the real shape of the mountains. In finance, banks and hedge funds use this same method, called Markov Chain Monte Carlo, to estimate the chances of big market crashes. Instead of trying to calculate millions of complex formulas for many investments, they let this digital explorer move through the data to find where the biggest risks are.</p>
+<p>Imagine being placed on a large, pitch-black terrain with only a small flashlight, tasked with mapping the highest peaks and ridges. You cannot view the entire landscape at once, and pacing every square foot on a rigid grid would take an impractical amount of time. Instead, you take incremental random steps. When a step leads uphill toward higher ground, you take it; when a step heads downhill, you occasionally take it anyway to avoid staying confined to a single minor hill. Because you spend most of your time traversing higher ridges and pass quickly through low valleys, your path naturally traces the contours of the landscape. In financial modeling, algorithms like Markov Chain Monte Carlo deploy this sequential exploration to estimate portfolio risk. Rather than evaluating billions of arbitrary grid points across multiple correlated factors, the sampler concentrates computational effort directly in regions of high probability.</p>
+<hr>
 </section>
-<section id="the-high-dimensional-dilemma" class="level3">
-<h3 class="anchored" data-anchor-id="the-high-dimensional-dilemma">The High-Dimensional Dilemma</h3>
-<p>If you manage risk across a portfolio with multiple correlated risk factors—equity betas, credit spreads, duration, commodities—you need a joint posterior distribution that covers them all at once.</p>
-<p>Writing out this joint distribution is mathematically straightforward. Evaluating it is not.</p>
-<p>In traditional quantitative finance, many standard models rely on numerical integration or deterministic grid search. As the number of risk factors (‭<span class="math inline">\(D\)</span>‬) increases, the volume of the parameter space explodes exponentially. This is the curse of dimensionality.</p>
+<section id="the-dimensional-scaling-challenge" class="level3">
+<h3 class="anchored" data-anchor-id="the-dimensional-scaling-challenge">The Dimensional Scaling Challenge</h3>
+<p>When managing risk across multiple correlated factors—equity betas, credit spreads, duration, and commodities—quantifying joint parameter uncertainty is essential. In low dimensions, deterministic numerical quadratures or grid evaluations are trivial. However, as the parameter count (‭<span class="math inline">\(D\)</span>‬) increases, Cartesian grid evaluations scale exponentially (‭<span class="math inline">\(K^D\)</span>‬).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">generate_dimension_comparison</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**The Curse of Dimensionality: Grid Search vs. MCMC**"</span>),</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Evaluating computational complexity across dimension horizons"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**Dimensional Complexity: Grid Search vs. Stochastic Sampling**"</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Scaling behavior of uniform grid evaluation vs. stochastic simulation"</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Dimensions =</span> <span class="st">"Model Scale"</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Dimensions =</span> <span class="st">"Factor Horizon"</span>,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">Grid_Points_Per_Axis =</span> <span class="st">"Points / Axis"</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total_Grid_Evaluations =</span> <span class="st">"Required Grid Evaluations"</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">Grid_Feasibility =</span> <span class="st">"Numerical Feasibility"</span>,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">MCMC_Iterations_Required =</span> <span class="st">"MCMC Draws Needed"</span>,</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">MCMC_Solve_Time =</span> <span class="st">"MCMC Runtime"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total_Grid_Evaluations =</span> <span class="st">"Grid Evaluations ($K^D$)"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">Grid_Feasibility =</span> <span class="st">"Grid Feasibility"</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">MCMC_Iterations_Required =</span> <span class="st">"Target MCMC Draws"</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">MCMC_Solve_Time =</span> <span class="st">"Observed MCMC Time"</span></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_style</span>(</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">style =</span> <span class="fu">cell_text</span>(<span class="at">weight =</span> <span class="st">"bold"</span>, <span class="at">color =</span> <span class="st">"#c0392b"</span>),</span>
@@ -739,18 +736,18 @@ window.Quarto = {
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
 <thead>
 <tr class="gt_heading header">
-<td colspan="6" class="gt_heading gt_title gt_font_normal"><strong>The Curse of Dimensionality: Grid Search vs.&nbsp;MCMC</strong></td>
+<td colspan="6" class="gt_heading gt_title gt_font_normal"><strong>Dimensional Complexity: Grid Search vs.&nbsp;Stochastic Sampling</strong></td>
 </tr>
 <tr class="gt_heading even">
-<td colspan="6" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Evaluating computational complexity across dimension horizons</td>
+<td colspan="6" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Scaling behavior of uniform grid evaluation vs. stochastic simulation</td>
 </tr>
 <tr class="gt_col_headings header">
-<th id="Dimensions" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Model Scale</th>
+<th id="Dimensions" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Factor Horizon</th>
 <th id="Grid_Points_Per_Axis" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Points / Axis</th>
-<th id="Total_Grid_Evaluations" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Required Grid Evaluations</th>
-<th id="Grid_Feasibility" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Numerical Feasibility</th>
-<th id="MCMC_Iterations_Required" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">MCMC Draws Needed</th>
-<th id="MCMC_Solve_Time" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">MCMC Runtime</th>
+<th id="Total_Grid_Evaluations" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Grid Evaluations ($K^D$)</th>
+<th id="Grid_Feasibility" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Grid Feasibility</th>
+<th id="MCMC_Iterations_Required" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Target MCMC Draws</th>
+<th id="MCMC_Solve_Time" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Observed MCMC Time</th>
 </tr>
 </thead>
 <tbody class="gt_table_body">
@@ -784,19 +781,18 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<ul>
-<li>For a simple 2 parameter model, the required grid evaluations is 100 calculations so you certainly don’t need MCMC assistance.</li>
-<li>With a modest 10 parameter model being used here, evaluating a coarse 10-point grid along each axis demands 10 billion calculations—paralyzing standard computing environments, yet the MCMC runtime is approximately 1.5 seconds.</li>
-<li>At 20 parameters, the requirement pretty much exceeds the memory capacity of any machine on the face of the earth, yet the MCMC runtime is approximately 3.5 seconds. That’s the brilliance of Markov Chain Monte Carlo.</li>
-</ul>
+<p><strong>Low-Dimensional Space (‭<span class="math inline">\(D = 2\)</span>‬‭‬):</strong> A coarse 10-point grid requires only ‭<span class="math inline">\(10^2 = 100\)</span>‬‭‬ function evaluations, making numerical quadratures instantaneous.</p>
+<p><strong>Moderate Parameter Space (‭<span class="math inline">\(D = 10\)</span>‬‭‬):</strong> Uniform evaluation along each axis requires ‭<span class="math inline">\(10^{10}\)</span>‬ calculations (10 billion operations)—creating significant runtime bottlenecks in standard computing environments, whereas stochastic sampling traverses the distribution in seconds.</p>
+<p><strong>Full Covariance Horizon (‭<span class="math inline">\(D = 20\)</span>‬‭‬):</strong> Modeling 20 factor means alongside full cross-asset covariances involves ‭<span class="math inline">\(D + D(D+1)/2 = 230\)</span>‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬ distinct parameters. Evaluating such spaces on uniform deterministic grids is computationally intractable, making stochastic simulation essential for non-conjugate structures.</p>
+<hr>
 </section>
 <section id="the-random-walk-engine" class="level3">
 <h3 class="anchored" data-anchor-id="the-random-walk-engine">The Random Walk Engine</h3>
-<p>Markov Chain Monte Carlo (MCMC) avoids solving intractable multidimensional integrals directly. Instead of attempting to map the entire parameter space, it navigates the probability landscape using an informed random walk:</p>
+<p>Markov Chain Monte Carlo navigates probability distributions via sequential, localized transitions:</p>
 <ol type="1">
-<li><strong>Propose a Step:</strong> The chain generates a candidate move from its current location.</li>
-<li><strong>Evaluate the Ratio:</strong> It compares the target probability density of the proposed spot against its current position.</li>
-<li><strong>Accept or Reject:</strong> Better regions are accepted; lower-probability regions are sometimes accepted to maintain ergodic exploration.</li>
+<li><strong>Propose a Move:</strong> The chain samples a candidate coordinate ‭<span class="math inline">\(\theta^*\)</span>‬ from a proposal distribution centered on the current state ‭<span class="math inline">\(\theta^{(t)}\)</span>‬.</li>
+<li><strong>Evaluate Density Ratio:</strong> It computes the target posterior probability ratio between candidate and current locations.</li>
+<li><strong>Accept or Reject:</strong> Proposals into higher-density regions are accepted; lower-density moves are accepted probabilistically, enabling the chain to explore parameter tails.</li>
 </ol>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -804,42 +800,44 @@ window.Quarto = {
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>How the Metropolis-Hastings Random Walk Works
+<span class="screen-reader-only">Note</span>The Metropolis-Hastings Random Walk
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>At a board level, evaluating portfolio risk across dozens of interdependent assets presents an impossible computational barrier: calculating every joint market permutation directly would require billions of operations and overwhelm standard computing capacity. The Metropolis-Hastings algorithm resolves this by deploying an intelligent “digital scout.” Instead of trying to measure the entire financial landscape all at once, the algorithm takes incremental exploratory steps through the possible outcomes. If a proposed step uncovers an area of high relevance or likelihood, the scout moves there immediately; if it steps toward a less likely scenario, it still accepts the move on occasion. This deliberate flexibility prevents the model from getting stuck in an isolated corner of the data, ensuring it explores the full risk terrain.</p>
-<p>Over thousands of quick steps, the algorithm spends time in each market scenario in exact proportion to that scenario’s true probability. The board does not receive an oversimplified, static formula or a guesswork average; rather, the process delivers a complete, high-resolution map of real-world capital risk and extreme tail exposure. For executive decision-makers, this turns an otherwise unmanageable mathematical dead end into a transparent, stress-tested audit of portfolio solvency—enabling leadership to size capital reserves and establish downside limits with confidence.</p>
+<p>Evaluating joint portfolio risk across multiple interdependent assets presents substantial computational complexity when models deviate from simple analytical assumptions. Calculating every joint market permutation across a fine grid requires billions of evaluations, creating an operational bottleneck. The Metropolis-Hastings algorithm resolves this by deploying a sequential “digital scout.” Rather than attempting to evaluate the entire parameter space uniformly, the algorithm takes incremental steps through potential states. If a proposed move discovers a region of higher probability, the chain transitions there; if it steps toward a lower-probability scenario, it still accepts the move occasionally to ensure thorough exploration. Over thousands of iterations, the algorithm visits parameter combinations in proportion to their joint posterior probability. This produces an empirical distribution of parameter uncertainty. For executive decision-makers, this turns otherwise intractable high-dimensional estimation into a practical sampling process, providing an empirical baseline for setting risk capital and stress limits.</p>
 </div>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_random_walk_2d</span>(hero_chain<span class="sc">$</span>draws, <span class="at">n_steps =</span> <span class="dv">180</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 10</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 10</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_random_walk_2d</span>(hero_chain<span class="sc">$</span>draws, <span class="at">n_steps =</span> <span class="dv">180</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="index_files/figure-html/hero-random-walk-plot-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="index_files/figure-html/hero-random-walk-model-1.png" class="img-fluid figure-img" width="768"></p>
 <figcaption>Figure 1: Metropolis-Hastings chain traversing a correlated bivariate parameter space.</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<section id="why-the-random-walk-works" class="level4">
-<h4 class="anchored" data-anchor-id="why-the-random-walk-works">Why the Random Walk Works</h4>
-<p><strong>Escaping the Tail:</strong> Notice how the chain begins at the cold coordinate ‭<span class="math inline">\((-3.2, 3.0)\)</span>‬‭‬‭‬ ‭‬‭‬ in the outer tail, yet rapidly climbs uphill toward the high-density contour core. <br></p>
-<p><strong>Proportional Dwell Time:</strong> Once inside the stationary distribution, the chain does not stay in one static place. It moves dynamically, spending time in each region in direct proportion to its true underlying probability.</p>
-<p>For risk professionals, MCMC turns an unsolvable model into a problem of waiting, not a dead end.</p>
+<section id="traversal-mechanics" class="level4">
+<h4 class="anchored" data-anchor-id="traversal-mechanics">Traversal Mechanics</h4>
+<ul>
+<li><strong>Stationary Convergence:</strong> Initializing from an arbitrary coordinate in the outer tail, the chain transitions toward the high-density contour core.</li>
+<li><strong>Proportional Dwell Time:</strong> Once stationary, the chain continues moving, spending time across regions in proportion to target posterior density.</li>
+</ul>
 <hr>
 </section>
 </section>
 <section id="project-structure-roadmap" class="level3">
 <h3 class="anchored" data-anchor-id="project-structure-roadmap">Project Structure &amp; Roadmap</h3>
-<p>This project demonstrates how MCMC resolves high-dimensional estimation problems in modern portfolio risk: <br></p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/01-mechanics.html"><strong>The Metropolis Engine:</strong></a> The pure R implementation from scratch, exploring the math of acceptance ratios and step-size tuning. <br></p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/02-risk-application.html"><strong>Portfolio Risk Model:</strong></a> Sampling the joint 10-asset factor posterior to generate parameter distributions for Value at Risk (VaR) and Expected Shortfall (ES). <br></p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/03-reproducibility.html"><strong>Audit &amp; Diagnostics:</strong></a> Verification of chain convergence, autocorrelation decay, and effective sample sizes.</p>
+<p>This project demonstrates the implementation, diagnostic auditing, and tail-risk application of first-principles MCMC:</p>
+<p>The Metropolis Engine: The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.</p>
+<p>Portfolio Risk Model: Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES) against closed-form benchmarks. A udit &amp; Diagnostics: Verification of chain mixing, autocorrelation decay, split-‭<span class="math inline">\(\hat{R}\)</span>‬, and robust Effective Sample Size (ESS) audits.</p>
 
 
 </section>

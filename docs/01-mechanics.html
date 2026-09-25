@@ -191,10 +191,8 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-four-steps-of-metropolis-hastings" id="toc-the-four-steps-of-metropolis-hastings" class="nav-link active" data-scroll-target="#the-four-steps-of-metropolis-hastings">The Four Steps of Metropolis-Hastings</a></li>
-  <li><a href="#the-complete-engine-in-pure-r" id="toc-the-complete-engine-in-pure-r" class="nav-link" data-scroll-target="#the-complete-engine-in-pure-r">The Complete Engine in Pure R</a></li>
-  <li><a href="#the-goldilocks-dilemma-tuning-proposal-step-size" id="toc-the-goldilocks-dilemma-tuning-proposal-step-size" class="nav-link" data-scroll-target="#the-goldilocks-dilemma-tuning-proposal-step-size">The Goldilocks Dilemma: Tuning Proposal Step Size</a></li>
-  <li><a href="#understanding-the-trace-plots" id="toc-understanding-the-trace-plots" class="nav-link" data-scroll-target="#understanding-the-trace-plots">Understanding the Trace Plots</a></li>
+  <li><a href="#the-complete-engine-in-pure-r" id="toc-the-complete-engine-in-pure-r" class="nav-link active" data-scroll-target="#the-complete-engine-in-pure-r">The Complete Engine in Pure R</a></li>
+  <li><a href="#the-step-size-dilemma-tuning-proposal-variance" id="toc-the-step-size-dilemma-tuning-proposal-variance" class="nav-link" data-scroll-target="#the-step-size-dilemma-tuning-proposal-variance">The Step-Size Dilemma: Tuning Proposal Variance</a></li>
   </ul>
 </nav>
     </div>
@@ -241,104 +239,116 @@ window.Quarto = {
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Run 3 chains with varying step sizes to demonstrate tuning</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Using proposal_sd = 1.20 aligns the 2D calibrated chain to ~31% acceptance</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>chain_timid <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">0.03</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>chain_wild  <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">3.20</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>chain_tuned <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">1.20</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>chain_timid <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">0.03</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>chain_wild  <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">3.20</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>chain_tuned <span class="ot">&lt;-</span> <span class="fu">run_metropolis</span>(target_toy, <span class="at">initial_theta =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">1.20</span>, <span class="at">seed =</span> <span class="dv">101</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>he Four Steps of Metropolis-Hastings Rather than solving high-dimensional integrals analytically, the Metropolis-Hastings algorithm generates samples from an unnormalized target density via four iterative steps: <br> 1. <strong>Propose a Candidate Move:</strong> Given the current state ‭<span class="math inline">\(\theta^{(t)}\)</span>‬, sample candidate coordinates ‭<span class="math inline">\(\theta^*\)</span>‬ from a symmetric proposal distribution: ‭<span class="math display">\[\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)\]</span>‬‭‬‭‬‭‬ ‭‬‭‬ 2. <strong>Evaluate the Hastings Acceptance Ratio (‭<span class="math inline">\(\alpha\)</span>‬):</strong> Compare target density at the candidate position to the current state: ‭<span class="math display">\[\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)\]</span>‬‭‬‭‬‭‬ ‭‬ In practice, this is evaluated in log-space to prevent numerical floating-point underflow: ‭<span class="math display">\[\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)\]</span>‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬ 3. <strong>The Acceptance Decision:</strong> Draw a uniform scalar ‭<span class="math inline">\(u \sim \text{Uniform}(0, 1)\)</span>‬‭‬‭‬‭‬‭‬ ‭‬‭‬. If ‭<span class="math inline">\(\log u &lt; \log \alpha\)</span>‬‭‬‭‬‭‬, the candidate is accepted: ‭<span class="math display">\[\theta^{(t+1)} = \theta^*\]</span>‬‭‬ Otherwise, the candidate is rejected, and the chain remains in place: ‭<span class="math display">\[\theta^{(t+1)} = \theta^{(t)}\]</span>‬‭‬ &gt; <em>Note: While occasionally accepting lower-density moves enables traversal across non-convex surfaces, standard Random-Walk Metropolis remains vulnerable to getting trapped between separated modes on complex, multimodal target surfaces.</em> <br><br> 4. <strong>Iterate:</strong> Repeating this transition rule generates an empirical chain whose visited states converge asymptotically to the target posterior distribution ‭<span class="math inline">\(p(\theta \mid \mathcal{D})\)</span>‬‭‬‭‬‭‬‭‬.</p>
 <hr>
-<section id="the-four-steps-of-metropolis-hastings" class="level3">
-<h3 class="anchored" data-anchor-id="the-four-steps-of-metropolis-hastings">The Four Steps of Metropolis-Hastings</h3>
-<p>The power of Markov Chain Monte Carlo lies in its simplicity. Rather than solving a high-dimensional integral analytically, the algorithm samples from an unnormalized probability density through four iterative steps:</p>
-<ol type="1">
-<li><strong>Propose a Candidate Move:</strong> Given current state ‭<span class="math inline">\(\theta^{(t)}\)</span>‬, sample a candidate coordinate ‭<span class="math inline">\(\theta^*\)</span>‬ from a symmetric proposal distribution: ‭<span class="math display">\[\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)\]</span>‬‭‬‭‬‭‬ ‭‬‭‬</li>
-<li><strong>Evaluate the Hastings Acceptance Ratio (‭<span class="math inline">\(\alpha\)</span>‬):</strong> Compare the likelihood of the candidate position to the current position: ‭<span class="math display">\[\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)\]</span>‬‭‬‭‬‭‬ ‭‬ In practice, this is evaluated in log-space to prevent numerical underflow: ‭<span class="math display">\[\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)\]</span>‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬</li>
-<li><strong>The Acceptance Decision (Ergodic Coin Flip):</strong> Draw a uniform random scalar ‭<span class="math inline">\(u \sim \text{Uniform}(0, 1)\)</span>‬‭‬‭‬‭‬‭‬ ‭‬‭‬. If ‭<span class="math inline">\(\log u &lt; \log \alpha\)</span>‬‭‬‭‬‭‬, the proposal is accepted: ‭<span class="math display">\[\theta^{(t+1)} = \theta^*\]</span>‬‭‬ Otherwise, the proposal is rejected, and the chain remains in place: ‭<span class="math display">\[\theta^{(t+1)} = \theta^{(t)}\]</span>‬‭‬</li>
-<li><strong>Iterate:</strong> Repeating this rule ensures that the empirical frequency of visits converges asymptotically to the true posterior distribution ‭<span class="math inline">\(p(\theta \mid \mathcal{D})\)</span>‬‭‬‭‬‭‬‭‬.</li>
-</ol>
-</section>
 <section id="the-complete-engine-in-pure-r" class="level3">
 <h3 class="anchored" data-anchor-id="the-complete-engine-in-pure-r">The Complete Engine in Pure R</h3>
-<p>The code block below is the entire algorithm implemented from first principles. There are no black-box packages or opaque wrappers:</p>
+<p>Below is the complete sampling engine implemented from first principles in base R:</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>run_metropolis <span class="ot">&lt;-</span> <span class="cf">function</span>(target_log_posterior, initial_theta, <span class="at">iterations =</span> <span class="dv">2000</span>, <span class="at">proposal_sd =</span> <span class="fl">0.05</span>) {</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">length</span>(initial_theta)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  theta_current <span class="ot">&lt;-</span> initial_theta</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  log_p_current <span class="ot">&lt;-</span> <span class="fu">target_log_posterior</span>(theta_current)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  draws_mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA_real_</span>, <span class="at">nrow =</span> iterations, <span class="at">ncol =</span> d)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  accepted  <span class="ot">&lt;-</span> <span class="fu">logical</span>(iterations)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>iterations) {</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Propose candidate jump</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    theta_candidate <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(d, <span class="at">mean =</span> theta_current, <span class="at">sd =</span> proposal_sd)</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    log_p_candidate <span class="ot">&lt;-</span> <span class="fu">target_log_posterior</span>(theta_candidate)</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Acceptance ratio in log-space</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    log_alpha <span class="ot">&lt;-</span> log_p_candidate <span class="sc">-</span> log_p_current</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Accept / Reject coin flip</span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(log_alpha) <span class="sc">&amp;&amp;</span> <span class="fu">log</span>(<span class="fu">runif</span>(<span class="dv">1</span>)) <span class="sc">&lt;</span> log_alpha) {</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>      theta_current <span class="ot">&lt;-</span> theta_candidate</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>      log_p_current <span class="ot">&lt;-</span> log_p_candidate</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>      accepted[t]   <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>run_metropolis <span class="ot">&lt;-</span> <span class="cf">function</span>(target_log_posterior,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                           initial_theta,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                           <span class="at">iterations =</span> <span class="dv">5000</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                           <span class="at">proposal_sd =</span> <span class="fl">0.05</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                           <span class="at">seed =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(seed)) <span class="fu">set.seed</span>(seed)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">length</span>(initial_theta)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  theta_current <span class="ot">&lt;-</span> initial_theta</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  log_p_current <span class="ot">&lt;-</span> <span class="fu">target_log_posterior</span>(theta_current)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  draws_mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA_real_</span>, <span class="at">nrow =</span> iterations, <span class="at">ncol =</span> d)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  accepted  <span class="ot">&lt;-</span> <span class="fu">logical</span>(iterations)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  log_probs <span class="ot">&lt;-</span> <span class="fu">numeric</span>(iterations)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>iterations) {</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.matrix</span>(proposal_sd)) {</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>      theta_candidate <span class="ot">&lt;-</span> MASS<span class="sc">::</span><span class="fu">mvrnorm</span>(<span class="dv">1</span>, <span class="at">mu =</span> theta_current, <span class="at">Sigma =</span> proposal_sd)</span>
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      accepted[t]   <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      theta_candidate <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(d, <span class="at">mean =</span> theta_current, <span class="at">sd =</span> proposal_sd)</span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    draws_mat[t, ] <span class="ot">&lt;-</span> theta_current</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">draws =</span> draws_mat, <span class="at">acceptance_rate =</span> <span class="fu">mean</span>(accepted))</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    log_p_candidate <span class="ot">&lt;-</span> <span class="fu">target_log_posterior</span>(theta_candidate)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    log_alpha <span class="ot">&lt;-</span> log_p_candidate <span class="sc">-</span> log_p_current</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(log_alpha) <span class="sc">&amp;&amp;</span> <span class="fu">log</span>(<span class="fu">runif</span>(<span class="dv">1</span>)) <span class="sc">&lt;</span> log_alpha) {</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>      theta_current <span class="ot">&lt;-</span> theta_candidate</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>      log_p_current <span class="ot">&lt;-</span> log_p_candidate</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>      accepted[t]   <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>      accepted[t]   <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    draws_mat[t, ] <span class="ot">&lt;-</span> theta_current</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    log_probs[t]   <span class="ot">&lt;-</span> log_p_current</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>  param_names <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(<span class="fu">names</span>(initial_theta))) {</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(initial_theta)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(<span class="st">"theta_"</span>, <span class="fu">seq_len</span>(d))</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>  draws_df <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(draws_mat, <span class="at">.name_repair =</span> <span class="st">"minimal"</span>)</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(draws_df) <span class="ot">&lt;-</span> param_names</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  draws_df <span class="ot">&lt;-</span> draws_df <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">iteration =</span> <span class="fu">seq_len</span>(iterations))</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>  diagnostics_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">iteration =</span> <span class="fu">seq_len</span>(iterations),</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">accepted =</span> accepted,</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_posterior =</span> log_probs</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">draws =</span> draws_df,</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">acceptance_rate =</span> <span class="fu">mean</span>(accepted),</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">diagnostics =</span> diagnostics_df,</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">dimensions =</span> d,</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">proposal_sd =</span> proposal_sd</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <hr>
 </section>
-<section id="the-goldilocks-dilemma-tuning-proposal-step-size" class="level3">
-<h3 class="anchored" data-anchor-id="the-goldilocks-dilemma-tuning-proposal-step-size">The Goldilocks Dilemma: Tuning Proposal Step Size</h3>
-<p>The primary operational lever in Random-Walk Metropolis is the proposal standard deviation (‭<span class="math inline">\(\sigma_{\epsilon}\)</span>‬). Tuning this parameter balances exploration speed against rejection frequency:</p>
+<section id="the-step-size-dilemma-tuning-proposal-variance" class="level3">
+<h3 class="anchored" data-anchor-id="the-step-size-dilemma-tuning-proposal-variance">The Step-Size Dilemma: Tuning Proposal Variance</h3>
+<p>The primary operational lever in Random-Walk Metropolis is the proposal standard deviation (‭<span class="math inline">\(\sigma_{\epsilon}\)</span>‬). Tuning this parameter governs the trade-off between spatial displacement per jump and proposal rejection frequency:</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_step_size_comparison</span>(chain_timid, chain_wild, chain_tuned)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 10</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 10</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_step_size_comparison</span>(chain_timid, chain_wild, chain_tuned)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="01-mechanics_files/figure-html/step-size-plot-1.png" class="img-fluid figure-img" width="960"></p>
-<figcaption>Figure 1: Trace plots illustrating the impact of proposal step size on chain mixing and acceptance.</figcaption>
+<p><img src="01-mechanics_files/figure-html/step-size-plot-1.png" class="img-fluid figure-img" width="768"></p>
+<figcaption>Figure 1: Trace plots illustrating the impact of proposal step size on chain mixing and acceptance</figcaption>
 </figure>
 </div>
 </div>
 </div>
-</section>
-<section id="understanding-the-trace-plots" class="level3">
-<h3 class="anchored" data-anchor-id="understanding-the-trace-plots">Understanding the Trace Plots</h3>
-<p>The trace plots show how one parameter (?<span class="math inline">\(\theta_1\)</span>?) changes over 2,000 steps in three different setups. You can imagine each panel like an EKG for an explorer moving through a foggy mountain range. The horizontal axis shows each step over time, and the vertical axis shows the parameter value at each step. By using the same model with three different proposal standard deviations (?<span class="math inline">\(\sigma_\epsilon\)</span>?), we can see how step size affects how well the sampler works.</p>
-<p>To understand the results, look for two things: how much of the vertical space the line covers and what the line looks like. A good sampler will look like a dense, fuzzy caterpillar or like random “white noise,” moving quickly up and down across the whole range without getting stuck at one value. If you see long, flat lines, it means the sampler tried a move that was rejected and had to stay in the same place. If the line moves smoothly and slowly, it means the sampler is taking very small steps and not exploring the space well.</p>
-<section id="diagnosing-the-three-regimes" class="level4">
-<h4 class="anchored" data-anchor-id="diagnosing-the-three-regimes">Diagnosing the Three Regimes <br></h4>
-<p><strong>Too Timid (‭<span class="math inline">\(\sigma_{\epsilon} = 0.03\)</span>‬‭‬ — Bottom Panel):</strong></p>
+<p><strong>Understanding the Trace Plots</strong></p>
+<p>The trace panels illustrate the trajectory of parameter ‭<span class="math inline">\(\theta_1\)</span>‬ over 2,000 steps under three distinct proposal step sizes (‭<span class="math inline">\(\sigma_\epsilon\)</span>‬), showing how proposal variance governs chain exploration:</p>
 <ol type="1">
-<li><strong>The Visual Tell:</strong> Notice how the blue line resembles a slowly drifting stock chart rather than noisy, stationary static. It meanders upward from iteration 0 to 2,000 without ever bouncing back across the entire parameter space.</li>
-<li><strong>What Is Happening:</strong> Because the proposal radius is infinitesimally small, almost every proposed jump lands right next to where the chain already stands. The acceptance rate appears deceptively high (98.5%), but the chain is essentially moving through molasses. It exhibits severe positive autocorrelation: step 1,001 tells you almost nothing new that step 1,000 didn’t already know. In a practical risk model, a chain this sluggish would require millions of iterations just to reach the opposite side of the true distribution.</li>
-</ol>
-<p><strong>Too Aggressive (‭<span class="math inline">\(\sigma_{\epsilon} = 3.20\)</span>‬‭‬ — Middle Panel):</strong></p>
-<ol type="1">
-<li><strong>The Visual Tell:</strong> Look at the prominent horizontal flatlines running through the red trace. For extended intervals (often 20 to 50 steps at a time), the line freezes completely horizontal.</li>
-<li><strong>What Is Happening:</strong> Here, the algorithm acts like a reckless hiker trying to leap canyons. It proposes massive steps across parameter space that almost always land far out in the low-probability tails, where the target density is near zero. Consequently, the Hastings rule rejects over 90% of proposed moves. The chain remains stuck in place, burning CPU cycles without collecting fresh information. While it occasionally lands an acceptable leap across the landscape, its low acceptance rate (9.9%) makes it an inefficient, high-friction sampler.</li>
-</ol>
-<p><strong>Calibrated (‭<span class="math inline">\(\sigma_{\epsilon} = 1.20\)</span>‬‭‬ — Top Panel):</strong></p>
-<ol type="1">
-<li><strong>The Visual Tell:</strong> The green trace displays a classic, healthy “fuzzy caterpillar” profile. It oscillates rapidly around the true center (‭<span class="math inline">\(0.0\)</span>‬), repeatedly traversing both the positive and negative contours of the distribution.</li>
-<li><strong>What Is Happening:</strong> This represents the optimal operational compromise. The jump radius is wide enough to let the explorer cross the distribution in just a few steps, yet controlled enough that proposed moves regularly land in plausible, high-density zones. With an acceptance rate of 34.2% (comfortably within the theoretical 25% to 40% sweet spot for low dimensions), the chain mixes efficiently, quickly sheds historical correlation, and delivers statistically independent draws for tail risk calculations.</li>
+<li><p><strong>Too Timid (‭<span class="math inline">\(\sigma_{\epsilon} = 0.03\)</span>‬‭‬ — Bottom Panel):</strong> Almost every proposal is accepted (98.5% acceptance), but displacement per step is small. The chain wanders sluggishly through diffusion rather than stationary mixing, exhibiting strong positive autocorrelation and requiring extensive iterations to traverse the distribution.</p></li>
+<li><p><strong>Too Aggressive (‭<span class="math inline">\(\sigma_{\epsilon} = 3.20\)</span>‬‭‬ — Middle Panel):</strong> Large proposal jumps land frequently in low-probability density tails, leading to a rejection rate exceeding 90% (9.9% acceptance). The trace exhibits horizontal flatlines where the state remains frozen across multiple consecutive iterations.</p></li>
+<li><p><strong>Calibrated (‭<span class="math inline">\(\sigma_{\epsilon} = 1.20\)</span>‬‭‬ — Top Panel):</strong> Jump radius is balanced against target density gradients, achieving an empirical acceptance rate of approximately 34.2% (aligning with theoretical targets of 25% to 40% for low dimensions). The trajectory rapidly oscillates across the distribution center. However, while a calibrated acceptance rate is necessary, it does not alone guarantee rapid autocorrelation decay when applied to high-dimensional, correlated parameters.</p></li>
 </ol>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
