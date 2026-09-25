@@ -18,6 +18,7 @@ Primary Libraries: tidyverse (dplyr, ggplot2, purrr, readr, stringr, tibble, tid
 Deployment/Output: Four-page self-contained HTML site (index.qmd, 01-mechanics.qmd, 02-risk-application.qmd, 03-reproducibility.qmd)
 Repository Structure
 
+```
 mcmc-in-action/
 ├── _quarto.yml               # Quarto configuration (Sandstone theme, navbar)
 ├── index.qmd                 # Intuition & 2D random walk visualization
@@ -31,6 +32,7 @@ mcmc-in-action/
 │   └── plots.R               # ggplot2 themes and diagnostic plots
 └── data/
     └── synthetic_returns.csv # Frozen 250-day x 10-factor returns matrix
+```
  
 Key Findings
 
