@@ -6,6 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Patrick Lefler">
+<meta name="dcterms.date" content="2026-09-24">
 
 <title>The Brilliance of Markov Chain Monte Carlo – Markov Chain Monte Carlo in Action</title>
 <style>
@@ -191,7 +193,7 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#markov-chain-monte-carlo-in-risk-management" id="toc-markov-chain-monte-carlo-in-risk-management" class="nav-link active" data-scroll-target="#markov-chain-monte-carlo-in-risk-management">Markov Chain Monte Carlo in Risk Management</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#plain-language-translation-how-it-works" id="toc-plain-language-translation-how-it-works" class="nav-link" data-scroll-target="#plain-language-translation-how-it-works">Plain-Language Translation: How It Works</a></li>
   <li><a href="#the-high-dimensional-dilemma" id="toc-the-high-dimensional-dilemma" class="nav-link" data-scroll-target="#the-high-dimensional-dilemma">The High-Dimensional Dilemma</a></li>
   <li><a href="#the-random-walk-engine" id="toc-the-random-walk-engine" class="nav-link" data-scroll-target="#the-random-walk-engine">The Random Walk Engine</a></li>
@@ -212,18 +214,36 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Patrick Lefler </p>
+          </div>
+  </div>
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 24, 2026</p>
+    </div>
+  </div>
   
     
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    Portfolio risk models with correlated multi-asset exposures require evaluating a joint posterior distribution that traditional grid integration cannot handle: a ten-asset model demands roughly ten billion grid evaluations, and twenty assets pushes past what any machine can hold in memory. This project implements a Metropolis-Hastings sampler from first principles in pure R, with no external packages, and applies it to a ten-factor portfolio spanning equity, credit, duration, and commodity exposures. Rather than solving the posterior integral directly, the sampler takes a random walk through parameter space, favoring high-probability regions while occasionally accepting worse moves to avoid local traps, and converges on the true distribution in seconds rather than requiring an intractable calculation. Calibrating the proposal step size proves to matter as much as the algorithm itself: a 34.2% acceptance rate mixes efficiently, while step sizes tuned too small or too large leave the chain stuck. Sampling the ten-factor joint posterior over 250 trading days of returns produces Value at Risk (1.05%) and Expected Shortfall (1.33%) with full 90% Bayesian credible intervals, propagating parameter uncertainty into downside risk that point-estimate models ignore. Validation against a synthetic dataset with known ground-truth parameters confirms the sampler recovers the true posterior mode without bias, and multi-chain convergence checks, autocorrelation decay, and Effective Sample Size calculations establish the audit trail model-validation teams require before production use.
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="markov-chain-monte-carlo-in-risk-management" class="level3">
-<h3 class="anchored" data-anchor-id="markov-chain-monte-carlo-in-risk-management">Markov Chain Monte Carlo in Risk Management</h3>
+<section id="introduction" class="level3">
+<h3 class="anchored" data-anchor-id="introduction">Introduction</h3>
 <p>Markov Chain Monte Carlo (MCMC) is a group of computer algorithms that help sample from complicated, high-dimensional probability distributions when direct calculation is not possible. In quantitative risk management, figuring out the combined risk of a portfolio with many assets means estimating many connected factors at once, like expected returns, changing volatilities, and how assets move together. Traditional methods, such as grid integration, become unworkable as the number of parameters grows, making these complex models too difficult to solve directly.</p>
 <p>MCMC solves this problem by using a smart random walk instead of direct calculations. The algorithm follows rules like the Metropolis-Hastings method to decide which steps to take, usually moving to more likely options but sometimes choosing less likely ones to make sure all areas are explored. Over time, the algorithm spends time in each region based on how likely it is, so the results match the true probability distribution without needing to calculate a difficult normalizing constant.</p>
 <p>For risk professionals, MCMC turns problems that are too complex to solve directly into practical sampling tasks. Rather than relying on simple but risky assumptions like fixed parameters or independent factors, teams can model all the uncertainty in their portfolios. This is important for accurately measuring downside risk. By using MCMC results in Value at Risk (VaR) and Expected Shortfall (ES) models, teams make sure that uncertainty is included in risk estimates, helping to avoid underestimating capital needs during market stress.</p>
@@ -735,7 +755,7 @@ window.Quarto = {
 </thead>
 <tbody class="gt_table_body">
 <tr class="odd">
-<td class="gt_row gt_left" headers="Dimensions">2 Assets (Toy Model)</td>
+<td class="gt_row gt_left" headers="Dimensions">2 Assets (simple model)</td>
 <td class="gt_row gt_right" headers="Grid_Points_Per_Axis">10</td>
 <td class="gt_row gt_left" headers="Total_Grid_Evaluations">10^2 = 100</td>
 <td class="gt_row gt_left" headers="Grid_Feasibility">Instantaneous (&lt;1 ms)</td>
@@ -743,7 +763,7 @@ window.Quarto = {
 <td class="gt_row gt_left" headers="MCMC_Solve_Time" style="color: #27AE60; font-weight: bold">&lt; 0.1 seconds</td>
 </tr>
 <tr class="even">
-<td class="gt_row gt_left" headers="Dimensions">10 Assets (Our Fixture)</td>
+<td class="gt_row gt_left" headers="Dimensions">10 Assets (current model)</td>
 <td class="gt_row gt_right" headers="Grid_Points_Per_Axis">10</td>
 <td class="gt_row gt_left" headers="Total_Grid_Evaluations" style="color: #C0392B; font-weight: bold">10^10 = 10,000,000,000</td>
 <td class="gt_row gt_left" headers="Grid_Feasibility">Memory Overflow / Impractical</td>
@@ -751,7 +771,7 @@ window.Quarto = {
 <td class="gt_row gt_left" headers="MCMC_Solve_Time" style="color: #27AE60; font-weight: bold">~1.5 seconds</td>
 </tr>
 <tr class="odd">
-<td class="gt_row gt_left" headers="Dimensions">20 Assets (LinkedIn Post)</td>
+<td class="gt_row gt_left" headers="Dimensions">20 Assets (future model)</td>
 <td class="gt_row gt_right" headers="Grid_Points_Per_Axis">10</td>
 <td class="gt_row gt_left" headers="Total_Grid_Evaluations" style="color: #C0392B; font-weight: bold">10^20 = 100,000,000,000,000,000,000</td>
 <td class="gt_row gt_left" headers="Grid_Feasibility">Computationally Impossible</td>
@@ -764,11 +784,20 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>Even with a modest portfolio of 10 assets, evaluating a coarse 10-point grid along each axis demands 10 billion calculations—paralyzing standard computing environments. At 20 parameters, the requirement exceeds the memory capacity of any machine.</p>
+<ul>
+<li>For a simple 2 parameter model, the required grid evaluations is 100 calculations so you certainly don’t need MCMC assistance.</li>
+<li>With a modest 10 parameter model being used here, evaluating a coarse 10-point grid along each axis demands 10 billion calculations—paralyzing standard computing environments, yet the MCMC runtime is approximately 1.5 seconds.</li>
+<li>At 20 parameters, the requirement pretty much exceeds the memory capacity of any machine on the face of the earth, yet the MCMC runtime is approximately 3.5 seconds. That’s the brilliance of Markov Chain Monte Carlo.</li>
+</ul>
 </section>
 <section id="the-random-walk-engine" class="level3">
 <h3 class="anchored" data-anchor-id="the-random-walk-engine">The Random Walk Engine</h3>
-<p>Markov Chain Monte Carlo (MCMC) avoids solving intractable multidimensional integrals directly. Instead of attempting to map the entire parameter space, it navigates the probability landscape using an informed random walk: 1. <strong>Propose a Step:</strong> The chain generates a candidate move from its current location. 2. <strong>Evaluate the Ratio:</strong> It compares the target probability density of the proposed spot against its current position. 3. <strong>Accept or Reject:</strong> Better regions are accepted; lower-probability regions are sometimes accepted to maintain ergodic exploration.</p>
+<p>Markov Chain Monte Carlo (MCMC) avoids solving intractable multidimensional integrals directly. Instead of attempting to map the entire parameter space, it navigates the probability landscape using an informed random walk:</p>
+<ol type="1">
+<li><strong>Propose a Step:</strong> The chain generates a candidate move from its current location.</li>
+<li><strong>Evaluate the Ratio:</strong> It compares the target probability density of the proposed spot against its current position.</li>
+<li><strong>Accept or Reject:</strong> Better regions are accepted; lower-probability regions are sometimes accepted to maintain ergodic exploration.</li>
+</ol>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">

@@ -202,7 +202,6 @@ window.Quarto = {
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#dataset-architecture-methodological-rationale" id="toc-dataset-architecture-methodological-rationale" class="nav-link" data-scroll-target="#dataset-architecture-methodological-rationale">Dataset Architecture &amp; Methodological Rationale</a></li>
   <li><a href="#the-institutional-diagnostic-mandate" id="toc-the-institutional-diagnostic-mandate" class="nav-link" data-scroll-target="#the-institutional-diagnostic-mandate">The Institutional Diagnostic Mandate</a></li>
-  <li><a href="#autocorrelation-decay-plot" id="toc-autocorrelation-decay-plot" class="nav-link" data-scroll-target="#autocorrelation-decay-plot">Autocorrelation Decay Plot</a></li>
   <li><a href="#toolchain-runtime-environment" id="toc-toolchain-runtime-environment" class="nav-link" data-scroll-target="#toolchain-runtime-environment">Toolchain &amp; Runtime Environment</a></li>
   <li><a href="#session-information" id="toc-session-information" class="nav-link" data-scroll-target="#session-information">Session Information</a></li>
   </ul>
@@ -304,11 +303,11 @@ window.Quarto = {
 <section id="introduction" class="level3">
 <h3 class="anchored" data-anchor-id="introduction">Introduction</h3>
 <p>In risk management and quantitative finance, it is important that complex models are transparent and can be verified. When using Markov Chain Monte Carlo to assess portfolio tail risk, it is not enough to just get reasonable downside estimates. Since MCMC creates a sequence of dependent parameter proposals instead of independent samples, risk leaders and model validators need clear evidence that the simulation has reached the true stationary distribution, has mixed well across the parameter space, and has enough statistical power.</p>
-<p>This audit page sets out the rules and checks that support the whole project. We review multi-chain trace diagnostics from different starting points, check how autocorrelation drops off over time, and calculate Effective Sample Size (ESS) to show that our Metropolis-Hastings sampler gives independent parameter samples for Value at Risk (VaR) and Expected Shortfall (ES) calculations. With a clear record of the environment, fixed random seeds, and a system dependency check, this section makes sure that all reported results are reproducible, accurate, and ready for audit.</p>
+<p>This audit page sets out the rules and checks that support the whole project. Multi-chain trace diagnostics from different starting points is reviewed, autocorrelation drops off over time are checked, and Effective Sample Size (ESS) is calculated to show that our Metropolis-Hastings sampler gives independent parameter samples for Value at Risk (VaR) and Expected Shortfall (ES) calculations. With a clear record of the environment, fixed random seeds, and a system dependency check, this section makes sure that all reported results are reproducible, accurate, and ready for audit.</p>
 </section>
 <section id="dataset-architecture-methodological-rationale" class="level3">
 <h3 class="anchored" data-anchor-id="dataset-architecture-methodological-rationale">Dataset Architecture &amp; Methodological Rationale</h3>
-<p>This analysis uses a fixed synthetic dataset of 250 trading days for 10 correlated asset classes <code>data/synthetic_returns.csv</code>. The data comes from a known multivariate normal distribution <span class="math inline">\(\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})\)</span>‬‭‬‭‬‭‬ ‭‬‭‬ , calibrated to match realistic annual risk levels: returns between 3.5% and 11.0%, volatilities from 8.0% to 26.0%, and cross-asset correlations between -0.30 and +0.78. Choosing synthetic data over real market data is intentional. In real financial series, the true data-generating process is hidden and affected by non-stationarity, regime changes, and survivorship bias. By setting a known ground truth, we create a clear benchmark. This lets us directly check, both visually and mathematically, that the Markov chain’s frequencies match the actual parameters, without interference from market noise.</p>
+<p>This analysis uses a fixed synthetic dataset of 250 trading days for 10 correlated asset classes <code>data/synthetic_returns.csv</code>. The data comes from a known multivariate normal distribution <span class="math inline">\(\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})\)</span>‬‭‬‭‬‭‬ ‭‬‭‬ , calibrated to match realistic annual risk levels: returns between 3.5% and 11.0%, volatilities from 8.0% to 26.0%, and cross-asset correlations between -0.30 and +0.78. Choosing synthetic data over real market data is intentional. In real financial series, the true data-generating process is hidden and affected by non-stationarity, regime changes, and survivorship bias. By setting a known ground truth, a clear benchmark is created. This lets us directly check, both visually and mathematically, that the Markov chain’s frequencies match the actual parameters, without interference from market noise.</p>
 <p>Using ten assets over 250 trading days (about one year) is chosen to show where traditional numerical integration fails, while keeping the model clear and reproducible. The curse of dimensionality grows quickly (‭<span class="math inline">\(K^D\)</span>‬): a simple 5-asset model can be handled with about 100,000 points, but 10 assets require 10 billion calculations (‭<span class="math inline">\(10^{10}\)</span>‬), which is too much for standard computers. Increasing to 15 or 25 assets would not change the main point; it would just make the matrices larger, slow down the process, and make the example harder to follow. The 250 daily returns give enough data to build stable covariance estimates and calculate 95% Value at Risk (VaR) and Expected Shortfall (ES), while still leaving enough uncertainty to show how parameter distributions spread and affect portfolio tail risk.</p>
 <div class="cell">
 <details class="code-fold">
@@ -357,7 +356,7 @@ window.Quarto = {
 <hr>
 <section id="multi-chain-mixing-verification" class="level4">
 <h4 class="anchored" data-anchor-id="multi-chain-mixing-verification">Multi-Chain Mixing Verification</h4>
-<p>To verify that the sampler is not trapped on local peaks, we run two independent chains initialized from distinct starting vectors (‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}\)</span>‬‭‬ vs.&nbsp;‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}\)</span>‬‭‬‭‬).</p>
+<p>To verify that the sampler is not trapped on local peaks, two independent chains are initialized from distinct starting vectors (‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}\)</span>‬‭‬ vs.&nbsp;‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}\)</span>‬‭‬‭‬).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -406,9 +405,8 @@ window.Quarto = {
 </ol>
 <hr>
 </section>
-</section>
-<section id="autocorrelation-decay-plot" class="level3">
-<h3 class="anchored" data-anchor-id="autocorrelation-decay-plot">Autocorrelation Decay Plot</h3>
+<section id="autocorrelation-decay-plot" class="level4">
+<h4 class="anchored" data-anchor-id="autocorrelation-decay-plot">Autocorrelation Decay Plot</h4>
 <p>Because MCMC proposes local jumps, consecutive iterations are positively correlated. High autocorrelation reduces the information value of each draw.</p>
 <div class="cell">
 <details class="code-fold">
@@ -460,11 +458,12 @@ window.Quarto = {
 </ol>
 <p><strong>Key Insights</strong> <br> This plot reveals the statistical engine that makes Markov Chain Monte Carlo work in high dimensions:</p>
 <ol type="1">
-<li><strong>Uncovering the Real Information Count (ESS):</strong> If an analyst runs 2,500 iterations of a model, standard statistics would treat these as 2,500 independent data points. But in a random walk, each step depends on the previous one. This chart helps measure that dependence. By looking at how autocorrelation fades, you can find the Effective Sample Size (ESS). This shows that out of 2,500 draws, we actually get hundreds of truly independent samples, which we can use for Value at Risk (VaR) and Expected Shortfall (ES).</li>
+<li><strong>Uncovering the Real Information Count (ESS):</strong> If an analyst runs 2,500 iterations of a model, standard statistics would treat these as 2,500 independent data points. But in a random walk, each step depends on the previous one. This chart helps measure that dependence. By looking at how autocorrelation fades, you can find the Effective Sample Size (ESS). This shows that out of 2,500 draws, hundreds of truly independent samples are obtained, which can used for Value at Risk (VaR) and Expected Shortfall (ES).</li>
 <li><strong>The “Wait, Not a Dead End” Trade-Off:</strong> In standard high-dimensional integration, solving 10 dimensions directly is a mathematical wall (10 billion calculations). In MCMC, temporary autocorrelation is accepted in exchange for being able to navigate the space at all. Instead of an impossible integral, the only cost is running a few extra hundred iterations so the chain can shed its memory.</li>
 <li><strong>Auditable Governance for Model Validation:</strong> Model validation typically committees reject simulation models that suffer from “sticky” or sluggish mixing. This diagnostic provides an empirical audit: it proves the chain is continuously circulating through the 10-dimensional space rather than vibrating in place, ensuring the downside risk percentiles are statistically sound rather than artifacts of sampling drag.</li>
 </ol>
 <hr>
+</section>
 <section id="effective-sample-size-ess-summary" class="level4">
 <h4 class="anchored" data-anchor-id="effective-sample-size-ess-summary">Effective Sample Size (ESS) Summary</h4>
 <p>Out of 2,500 post-burn iterations, the effective independent sample size for Tech_Growth is 39 draws. In risk management, an ESS above 400 is considered adequate for estimating 95% and 99% portfolio quantiles without excessive variance.</p>
@@ -994,7 +993,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p><strong>Understanding the Effective Sample Size (ESS) Summary</strong> <br> In standard Monte Carlo, each draw is independent, so 2,500 iterations give 2,500 unique data points. In MCMC, each step depends on the previous one, which creates correlation between nearby draws. This audit table helps us see how much truly independent information we get from our 2,500 post-burn iterations.</p>
+<p><strong>Understanding the Effective Sample Size (ESS) Summary</strong> <br> In standard Monte Carlo, each draw is independent, so 2,500 iterations give 2,500 unique data points. In MCMC, each step depends on the previous one, which creates correlation between nearby draws. This audit table helps visualize how much independent information can be obtained from the 2,500 post-burn iterations.</p>
 <ol type="1">
 <li><strong>Risk Factor Asset:</strong> This is the exposure being audited, such as Tech Growth, 10Y Treasuries, or US Large Cap.</li>
 <li><strong>Post-Burn Draws:</strong> The number of iterations kept after removing the initial biased samples, here 2,500 draws.<br></li>
@@ -1002,7 +1001,7 @@ window.Quarto = {
 <li><strong>Efficiency Ratio:</strong> The ratio of effective draws to the total number of draws. <span class="math inline">\(\text{ESS} / \text{Nominal Draws}\)</span>???. For Random-Walk Metropolis in ~10 dimensions, 15% to 40% represents an efficient, well-mixed chain. <br></li>
 <li><strong>Lag-10 Autocorr:</strong> This measures the correlation between a draw and the value 10 steps later. Lower values mean the parameters are explored more quickly. <br></li>
 </ol>
-<p><strong>Key Insights</strong> <br> Three key insights to focus on:</p>
+<p><strong>Key Insights</strong> <br> Three keys to focus on:</p>
 <ol type="1">
 <li><strong>Adequate Sample Size for Tail Risk:</strong> Regulators usually recommend an ESS above 300 to 400 for stable 95% and 99% portfolio quantiles. Since our effective sample sizes are well above this, our Value at Risk (1.05%) and Expected Shortfall (1.33%) results are statistically reliable, not just random noise.</li>
 <li><strong>Macro Assets Clear Autocorrelation Faster:</strong> 10Y Treasuries have higher sampling efficiency and lower Lag-10 autocorrelation than Tech Growth. Since Treasuries have lower volatility (8% compared to 26%), their samples move through the distribution faster and lose serial memory more quickly.</li>
