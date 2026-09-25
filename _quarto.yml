@@ -1,0 +1,28 @@
+
+project:
+  type: website
+  output-dir: _docs
+
+website:
+  title: "Markov Chain Monte Carlo in Action"
+  description: "Taming High-Dimensional Risk Models with Markov Chain Monte Carlo"
+  navbar:
+    left:
+      - href: index.qmd
+        text: "Intuition & The Walk"
+      - href: 01-mechanics.qmd
+        text: "The Metropolis Engine"
+      - href: 02-risk-application.qmd
+        text: "Portfolio Risk Model"
+      - href: 03-reproducibility.qmd
+        text: "Audit & Diagnostics"
+
+format:
+  html:
+    theme: sandstone
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    fig-width: 8
+    fig-height: 5
+    df-print: paged

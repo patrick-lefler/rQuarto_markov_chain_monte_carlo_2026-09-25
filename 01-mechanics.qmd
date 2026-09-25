@@ -1,0 +1,122 @@
+---
+title: "The Metropolis Engine: Mechanics & Calibration"
+subtitle: "Deconstructing the Random Walk, Hastings Ratio, and the Step-Size Dilemma"
+---
+
+```{r setup, echo = TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+source("R/metropolis_sampler.R")
+source("R/plots.R")
+
+# Target: Correlated bivariate normal
+target_toy <- function(theta) {
+  mu <- c(0, 0)
+  sigma <- matrix(c(1.0, 0.75, 0.75, 1.0), nrow = 2)
+  -0.5 * t(theta - mu) %*% solve(sigma) %*% (theta - mu)
+}
+
+# Run 3 chains with varying step sizes to demonstrate tuning
+# Using proposal_sd = 1.20 aligns the 2D calibrated chain to ~31% acceptance
+chain_timid <- run_metropolis(target_toy, initial_theta = c(0, 0), iterations = 2000, proposal_sd = 0.03, seed = 101)
+chain_wild  <- run_metropolis(target_toy, initial_theta = c(0, 0), iterations = 2000, proposal_sd = 3.20, seed = 101)
+chain_tuned <- run_metropolis(target_toy, initial_theta = c(0, 0), iterations = 2000, proposal_sd = 1.20, seed = 101)
+
+```
+
+---
+
+### The Four Steps of Metropolis-Hastings
+The power of Markov Chain Monte Carlo lies in its simplicity. Rather than solving a high-dimensional integral analytically, the algorithm samples from an unnormalized probability density through four iterative steps:
+
+1.	**Propose a Candidate Move:**
+Given current state ‭$\theta^{(t)}$‬, sample a candidate coordinate ‭$\theta^*$‬ from a symmetric proposal distribution:
+‭$$\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)$$‬‭‬‭‬‭‬ ‭‬‭‬
+2.	**Evaluate the Hastings Acceptance Ratio (‭$\alpha$‬):**
+Compare the likelihood of the candidate position to the current position:
+‭$$\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)$$‬‭‬‭‬‭‬ ‭‬
+In practice, this is evaluated in log-space to prevent numerical underflow:
+‭$$\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)$$‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬
+3.	**The Acceptance Decision (Ergodic Coin Flip):**
+Draw a uniform random scalar ‭$u \sim \text{Uniform}(0, 1)$‬‭‬‭‬‭‬‭‬ ‭‬‭‬. If ‭$\log u < \log \alpha$‬‭‬‭‬‭‬, the proposal is accepted:
+‭$$\theta^{(t+1)} = \theta^*$$‬‭‬
+Otherwise, the proposal is rejected, and the chain remains in place:
+‭$$\theta^{(t+1)} = \theta^{(t)}$$‬‭‬
+4.	**Iterate:**
+Repeating this rule ensures that the empirical frequency of visits converges asymptotically to the true posterior distribution ‭$p(\theta \mid \mathcal{D})$‬‭‬‭‬‭‬‭‬.
+
+### The Complete Engine in Pure R
+The code block below is the entire algorithm implemented from first principles. There are no black-box packages or opaque wrappers:
+
+```{r show-engine, echo = TRUE, eval = FALSE}
+
+run_metropolis <- function(target_log_posterior, initial_theta, iterations = 2000, proposal_sd = 0.05) {
+  d <- length(initial_theta)
+  theta_current <- initial_theta
+  log_p_current <- target_log_posterior(theta_current)
+
+  draws_mat <- matrix(NA_real_, nrow = iterations, ncol = d)
+  accepted  <- logical(iterations)
+
+  for (t in 1:iterations) {
+    # 1. Propose candidate jump
+    theta_candidate <- rnorm(d, mean = theta_current, sd = proposal_sd)
+    log_p_candidate <- target_log_posterior(theta_candidate)
+
+    # 2. Acceptance ratio in log-space
+    log_alpha <- log_p_candidate - log_p_current
+
+    # 3. Accept / Reject coin flip
+    if (!is.na(log_alpha) && log(runif(1)) < log_alpha) {
+      theta_current <- theta_candidate
+      log_p_current <- log_p_candidate
+      accepted[t]   <- TRUE
+    } else {
+      accepted[t]   <- FALSE
+    }
+    draws_mat[t, ] <- theta_current
+  }
+  
+  list(draws = draws_mat, acceptance_rate = mean(accepted))
+}
+
+```
+
+---
+
+### The Goldilocks Dilemma: Tuning Proposal Step Size
+The primary operational lever in Random-Walk Metropolis is the proposal standard deviation (‭$\sigma_{\epsilon}$‬). Tuning this parameter balances exploration speed against rejection frequency:
+
+``` {r step-size-plot, fig.cap = "Figure 1: Trace plots illustrating the impact of proposal step size on chain mixing and acceptance."}
+#| fig-width: 10
+#| fig-height: 10
+
+plot_step_size_comparison(chain_timid, chain_wild, chain_tuned)
+
+```
+
+### Understanding the Trace Plots
+The trace plots show how one parameter (?$\theta_1$?) changes over 2,000 steps in three different setups. You can imagine each panel like an EKG for an explorer moving through a foggy mountain range. The horizontal axis shows each step over time, and the vertical axis shows the parameter value at each step. By using the same model with three different proposal standard deviations (?$\sigma_\epsilon$?), we can see how step size affects how well the sampler works.
+
+To understand the results, look for two things: how much of the vertical space the line covers and what the line looks like. A good sampler will look like a dense, fuzzy caterpillar or like random "white noise," moving quickly up and down across the whole range without getting stuck at one value. If you see long, flat lines, it means the sampler tried a move that was rejected and had to stay in the same place. If the line moves smoothly and slowly, it means the sampler is taking very small steps and not exploring the space well.
+
+#### Diagnosing the Three Regimes <br/>
+
+**Too Timid (‭$\sigma_{\epsilon} = 0.03$‬‭‬ — Bottom Panel):**
+
+1. **The Visual Tell:** Notice how the blue line resembles a slowly drifting stock chart rather than noisy, stationary static. It meanders upward from iteration 0 to 2,000 without ever bouncing back across the entire parameter space.
+2. **What Is Happening:** Because the proposal radius is infinitesimally small, almost every proposed jump lands right next to where the chain already stands. The acceptance rate appears deceptively high (98.5%), but the chain is essentially moving through molasses. It exhibits severe positive autocorrelation: step 1,001 tells you almost nothing new that step 1,000 didn't already know. In a practical risk model, a chain this sluggish would require millions of iterations just to reach the opposite side of the true distribution.
+
+**Too Aggressive (‭$\sigma_{\epsilon} = 3.20$‬‭‬ — Middle Panel):**
+
+1. **The Visual Tell:** Look at the prominent horizontal flatlines running through the red trace. For extended intervals (often 20 to 50 steps at a time), the line freezes completely horizontal.
+2. **What Is Happening:** Here, the algorithm acts like a reckless hiker trying to leap canyons. It proposes massive steps across parameter space that almost always land far out in the low-probability tails, where the target density is near zero. Consequently, the Hastings rule rejects over 90% of proposed moves. The chain remains stuck in place, burning CPU cycles without collecting fresh information. While it occasionally lands an acceptable leap across the landscape, its low acceptance rate (9.9%) makes it an inefficient, high-friction sampler.
+	
+**Calibrated (‭$\sigma_{\epsilon} = 1.20$‬‭‬ — Top Panel):**
+
+1. **The Visual Tell:** The green trace displays a classic, healthy "fuzzy caterpillar" profile. It oscillates rapidly around the true center (‭$0.0$‬), repeatedly traversing both the positive and negative contours of the distribution.
+2. **What Is Happening:** This represents the optimal operational compromise. The jump radius is wide enough to let the explorer cross the distribution in just a few steps, yet controlled enough that proposed moves regularly land in plausible, high-density zones. With an acceptance rate of 34.2% (comfortably within the theoretical 25% to 40% sweet spot for low dimensions), the chain mixes efficiently, quickly sheds historical correlation, and delivers statistically independent draws for tail risk calculations.

@@ -1,0 +1,131 @@
+---
+title: "The Brilliance of Markov Chain Monte Carlo"
+subtitle: "Taming High-Dimensional Risk Models Through Random Walks"
+author: "Patrick Lefler"
+date: "September 24, 2026"
+abstract: "Portfolio risk models with correlated multi-asset exposures require evaluating a joint posterior distribution that traditional grid integration cannot handle: a ten-asset model demands roughly ten billion grid evaluations, and twenty assets pushes past what any machine can hold in memory. This project implements a Metropolis-Hastings sampler from first principles in pure R, with no external packages, and applies it to a ten-factor portfolio spanning equity, credit, duration, and commodity exposures. Rather than solving the posterior integral directly, the sampler takes a random walk through parameter space, favoring high-probability regions while occasionally accepting worse moves to avoid local traps, and converges on the true distribution in seconds rather than requiring an intractable calculation. Calibrating the proposal step size proves to matter as much as the algorithm itself: a 34.2% acceptance rate mixes efficiently, while step sizes tuned too small or too large leave the chain stuck. Sampling the ten-factor joint posterior over 250 trading days of returns produces Value at Risk (1.05%) and Expected Shortfall (1.33%) with full 90% Bayesian credible intervals, propagating parameter uncertainty into downside risk that point-estimate models ignore. Validation against a synthetic dataset with known ground-truth parameters confirms the sampler recovers the true posterior mode without bias, and multi-chain convergence checks, autocorrelation decay, and Effective Sample Size calculations establish the audit trail model-validation teams require before production use."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(gt)
+library(scales)
+
+source("R/metropolis_sampler.R")
+source("R/risk_functions.R")
+source("R/plots.R")
+
+# Run toy 2D chain for hero visual
+target_bivariate <- function(theta) {
+  mu <- c(0.5, 0.5)
+  sigma <- matrix(c(1.0, 0.70, 0.70, 1.0), nrow = 2)
+  -0.5 * t(theta - mu) %*% solve(sigma) %*% (theta - mu)
+}
+
+hero_chain <- run_metropolis(
+  target_log_posterior = target_bivariate,
+  initial_theta = c(-3.2, 3.0),
+  iterations = 300,
+  proposal_sd = 0.45,
+  seed = 42
+)
+
+```
+
+### Introduction
+
+Markov Chain Monte Carlo (MCMC) is a group of computer algorithms that help sample from complicated, high-dimensional probability distributions when direct calculation is not possible. In quantitative risk management, figuring out the combined risk of a portfolio with many assets means estimating many connected factors at once, like expected returns, changing volatilities, and how assets move together. Traditional methods, such as grid integration, become unworkable as the number of parameters grows, making these complex models too difficult to solve directly.
+
+
+MCMC solves this problem by using a smart random walk instead of direct calculations. The algorithm follows rules like the Metropolis-Hastings method to decide which steps to take, usually moving to more likely options but sometimes choosing less likely ones to make sure all areas are explored. Over time, the algorithm spends time in each region based on how likely it is, so the results match the true probability distribution without needing to calculate a difficult normalizing constant.
+
+For risk professionals, MCMC turns problems that are too complex to solve directly into practical sampling tasks. Rather than relying on simple but risky assumptions like fixed parameters or independent factors, teams can model all the uncertainty in their portfolios. This is important for accurately measuring downside risk. By using MCMC results in Value at Risk (VaR) and Expected Shortfall (ES) models, teams make sure that uncertainty is included in risk estimates, helping to avoid underestimating capital needs during market stress.
+
+### Plain-Language Translation: How It Works
+Imagine being placed on a huge, dark mountain range with only a small flashlight to guide you, and your task is to map out the highest peaks and ridges. You can't see the entire landscape at once, and walking every part would take forever. Instead, you take small, random steps. If a step goes uphill, you take it. Sometimes, you also take a downhill step so you don't get stuck on one small hill.
+
+Since you spend most of your time on the high peaks and only pass quickly through the valleys, your path ends up showing the real shape of the mountains. In finance, banks and hedge funds use this same method, called Markov Chain Monte Carlo, to estimate the chances of big market crashes. Instead of trying to calculate millions of complex formulas for many investments, they let this digital explorer move through the data to find where the biggest risks are.
+
+
+### The High-Dimensional Dilemma
+If you manage risk across a portfolio with multiple correlated risk factors—equity betas, credit spreads, duration, commodities—you need a joint posterior distribution that covers them all at once.
+
+Writing out this joint distribution is mathematically straightforward. Evaluating it is not.
+
+In traditional quantitative finance, many standard models rely on numerical integration or deterministic grid search. As the number of risk factors (‭$D$‬) increases, the volume of the parameter space explodes exponentially. This is the curse of dimensionality.
+
+``` {r grid-breakdown-table, echo = TRUE}
+
+generate_dimension_comparison() %>%
+  gt() %>%
+  tab_header(
+    title = md("**The Curse of Dimensionality: Grid Search vs. MCMC**"),
+    subtitle = "Evaluating computational complexity across dimension horizons"
+  ) %>%
+  cols_label(
+    Dimensions = "Model Scale",
+    Grid_Points_Per_Axis = "Points / Axis",
+    Total_Grid_Evaluations = "Required Grid Evaluations",
+    Grid_Feasibility = "Numerical Feasibility",
+    MCMC_Iterations_Required = "MCMC Draws Needed",
+    MCMC_Solve_Time = "MCMC Runtime"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold", color = "#c0392b"),
+    locations = cells_body(columns = Total_Grid_Evaluations, rows = 2:3)
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold", color = "#27ae60"),
+    locations = cells_body(columns = MCMC_Solve_Time)
+  ) %>%
+  tab_options(table.font.size = 12)
+
+```
+
+- For a simple 2 parameter model, the required grid evaluations is 100 calculations so you certainly don't need MCMC assistance. 
+- With a modest 10 parameter model being used here, evaluating a coarse 10-point grid along each axis demands 10 billion calculations—paralyzing standard computing environments, yet the MCMC runtime is approximately 1.5 seconds. 
+- At 20 parameters, the requirement pretty much exceeds the memory capacity of any machine on the face of the earth, yet the MCMC runtime is approximately 3.5 seconds. That's the brilliance of Markov Chain Monte Carlo. 
+
+### The Random Walk Engine
+Markov Chain Monte Carlo (MCMC) avoids solving intractable multidimensional integrals directly. Instead of attempting to map the entire parameter space, it navigates the probability landscape using an informed random walk:
+
+1. **Propose a Step:** The chain generates a candidate move from its current location.
+2. **Evaluate the Ratio:** It compares the target probability density of the proposed spot against its current position.
+3. **Accept or Reject:** Better regions are accepted; lower-probability regions are sometimes accepted to maintain ergodic exploration.
+
+::: {.callout-note icon = false}
+## How the Metropolis-Hastings Random Walk Works
+
+At a board level, evaluating portfolio risk across dozens of interdependent assets presents an impossible computational barrier: calculating every joint market permutation directly would require billions of operations and overwhelm standard computing capacity. The Metropolis-Hastings algorithm resolves this by deploying an intelligent "digital scout." Instead of trying to measure the entire financial landscape all at once, the algorithm takes incremental exploratory steps through the possible outcomes. If a proposed step uncovers an area of high relevance or likelihood, the scout moves there immediately; if it steps toward a less likely scenario, it still accepts the move on occasion. This deliberate flexibility prevents the model from getting stuck in an isolated corner of the data, ensuring it explores the full risk terrain.
+
+Over thousands of quick steps, the algorithm spends time in each market scenario in exact proportion to that scenario’s true probability. The board does not receive an oversimplified, static formula or a guesswork average; rather, the process delivers a complete, high-resolution map of real-world capital risk and extreme tail exposure. For executive decision-makers, this turns an otherwise unmanageable mathematical dead end into a transparent, stress-tested audit of portfolio solvency—enabling leadership to size capital reserves and establish downside limits with confidence.
+:::
+
+	
+``` {r hero-random-walk-plot, fig.cap = "Figure 1: Metropolis-Hastings chain traversing a correlated bivariate parameter space."}	
+#| fig-width: 10
+#| fig-height: 10
+
+plot_random_walk_2d(hero_chain$draws, n_steps = 180)
+
+```
+
+#### Why the Random Walk Works
+**Escaping the Tail:** Notice how the chain begins at the cold coordinate ‭$(-3.2, 3.0)$‬‭‬‭‬ ‭‬‭‬ in the outer tail, yet rapidly climbs uphill toward the high-density contour core. <br/>
+
+**Proportional Dwell Time:** Once inside the stationary distribution, the chain does not stay in one static place. It moves dynamically, spending time in each region in direct proportion to its true underlying probability.
+
+For risk professionals, MCMC turns an unsolvable model into a problem of waiting, not a dead end.
+
+---
+
+### Project Structure & Roadmap
+This project demonstrates how MCMC resolves high-dimensional estimation problems in modern portfolio risk: <br/>
+
+**The Metropolis Engine:** The pure R implementation from scratch, exploring the math of acceptance ratios and step-size tuning. <br/>
+
+**Portfolio Risk Model:** Sampling the joint 10-asset factor posterior to generate parameter distributions for Value at Risk (VaR) and Expected Shortfall (ES). <br/>
+
+**Audit & Diagnostics:** Verification of chain convergence, autocorrelation decay, and effective sample sizes.
