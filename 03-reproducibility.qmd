@@ -3,7 +3,6 @@ title: "Audit & Diagnostics"
 subtitle: "Algorithmic Health Checks, Autocorrelation, and Environment Manifest"
 ---
 
-
 ```{r setup, echo = TRUE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(dplyr)
@@ -14,9 +13,7 @@ library(scales)
 library(tidyverse)
 
 source("R/metropolis_sampler.R")
-
 source("R/risk_functions.R")
-
 source("R/plots.R")
 
 # 1. Ingest fixture and run two independent chains to test mixing
@@ -50,20 +47,10 @@ chain2 <- run_metropolis(
 draws1_clean <- chain1$draws %>% slice_tail(n = 2500)
 draws2_clean <- chain2$draws %>% slice_tail(n = 2500)
 
-# 2. Compute Effective Sample Size (ESS) Approximation
-# ESS = N / (1 + 2 * sum(rho_k))
-compute_ess <- function(x) {
-  n <- length(x)
-  acf_vals <- acf(x, plot = FALSE, lag.max = 40)$acf[-1]
-  # Sum positive autocorrelations
-  pos_acf <- acf_vals[acf_vals > 0]
-  act <- 1 + 2 * sum(pos_acf)
-  round(n / act)
-}
-
-ess_tech  <- compute_ess(draws1_clean$Tech_Growth)
-ess_treas <- compute_ess(draws1_clean$US_Treas_10Y)
-ess_large <- compute_ess(draws1_clean$US_LargeCap)
+# 2. Compute Robust Effective Sample Size (ESS) using Geyer's initial sequence estimator
+ess_tech  <- compute_ess_robust(draws1_clean$Tech_Growth)
+ess_treas <- compute_ess_robust(draws1_clean$US_Treas_10Y)
+ess_large <- compute_ess_robust(draws1_clean$US_LargeCap)
 
 # Diagnostic inline variables
 txt_acc_c1   <- sprintf("%.1f%%", chain1$acceptance_rate * 100)
@@ -74,23 +61,20 @@ txt_n_draws  <- comma(nrow(draws1_clean))
 ```
 
 ### Introduction
+In institutional risk management, stochastic simulation models must be transparent and auditable. When using Markov Chain Monte Carlo to evaluate high-dimensional portfolio distributions, point estimates alone are insufficient. Because MCMC generates a sequence of dependent parameter proposals rather than independent samples, model validation requires empirical verification of convergence, parameter space exploration, and statistical sample efficiency.
 
-In risk management and quantitative finance, it is important that complex models are transparent and can be verified. When using Markov Chain Monte Carlo to assess portfolio tail risk, it is not enough to just get reasonable downside estimates. Since MCMC creates a sequence of dependent parameter proposals instead of independent samples, risk leaders and model validators need clear evidence that the simulation has reached the true stationary distribution, has mixed well across the parameter space, and has enough statistical power.
-
-This audit page sets out the rules and checks that support the whole project. Multi-chain trace diagnostics from different starting points is reviewed, autocorrelation drops off over time are checked, and Effective Sample Size (ESS) is calculated to show that our Metropolis-Hastings sampler gives independent parameter samples for Value at Risk (VaR) and Expected Shortfall (ES) calculations. With a clear record of the environment, fixed random seeds, and a system dependency check, this section makes sure that all reported results are reproducible, accurate, and ready for audit.
-
+This audit page examines the algorithmic health checks for the 10-dimensional Gaussian random walk. We evaluate multi-chain convergence, measure autocorrelation decay across factor lags, and apply Geyer's initial sequence estimator to compute robust Effective Sample Size (ESS). This diagnostic audit outlines both the utility of Random-Walk Metropolis and the operational limitations encountered when isotropic proposals are applied to correlated factor distributions.
 
 ### Dataset Architecture & Methodological Rationale
+The analysis utilizes a fixed synthetic fixture of 250 trading days across 10 correlated asset classes (data/synthetic_returns.csv), generated from a known multivariate normal distribution ‭$\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})$‬‭‬‭‬‭‬ ‭‬‭‬ calibrated to realistic risk levels: annualized returns between 3.5% and 11.0%, volatilities between 8.0% and 26.0%, and correlations from -0.30 to +0.78.
 
-This analysis uses a fixed synthetic dataset of 250 trading days for 10 correlated asset classes `data/synthetic_returns.csv`. The data comes from a known multivariate normal distribution $\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})$‬‭‬‭‬‭‬ ‭‬‭‬ , calibrated to match realistic annual risk levels: returns between 3.5% and 11.0%, volatilities from 8.0% to 26.0%, and cross-asset correlations between -0.30 and +0.78. Choosing synthetic data over real market data is intentional. In real financial series, the true data-generating process is hidden and affected by non-stationarity, regime changes, and survivorship bias. By setting a known ground truth, a clear benchmark is created. This lets us directly check, both visually and mathematically, that the Markov chain’s frequencies match the actual parameters, without interference from market noise.
+Using a synthetic baseline provides a controlled ground truth. In empirical market feeds, true data-generating distributions are obscured by regime shifts, structural breaks, and survivorship bias. By defining a synthetic population, we establish an explicit benchmark to test whether the sampler recovers sample parameters. Evaluating 10 factors illustrates the scaling challenge where uniform grid search (‭$10^{10}$‬ points) becomes computationally impractical, while 250 observations preserve realistic parameter standard errors for downside modeling.
 
-Using ten assets over 250 trading days (about one year) is chosen to show where traditional numerical integration fails, while keeping the model clear and reproducible. The curse of dimensionality grows quickly (‭$K^D$‬): a simple 5-asset model can be handled with about 100,000 points, but 10 assets require 10 billion calculations (‭$10^{10}$‬), which is too much for standard computers. Increasing to 15 or 25 assets would not change the main point; it would just make the matrices larger, slow down the process, and make the example harder to follow. The 250 daily returns give enough data to build stable covariance estimates and calculate 95% Value at Risk (VaR) and Expected Shortfall (ES), while still leaving enough uncertainty to show how parameter distributions spread and affect portfolio tail risk.
+```{r retrieve-data}
 
-``` {r retreive-data}
+synthetic_data_returns <- as_tibble(read_csv("data/synthetic_returns.csv", show_col_types = FALSE))
 
-synthetic_data_returns <- as.tibble(read_csv("data/synthetic_returns.csv"))
-
-reactable_tbl <- reactable(synthetic_data_returns,
+reactable(synthetic_data_returns,
   defaultPageSize = 10,
   highlight   = TRUE,
   striped     = TRUE,
@@ -101,38 +85,30 @@ reactable_tbl <- reactable(synthetic_data_returns,
     width = 110
   ),
   columns = list(
-  trading_day = colDef(align = "center", format = colFormat(digits = 0))),
+    trading_day = colDef(align = "center", format = colFormat(digits = 0))
+  ),
   class = ".react_table",
   theme = reactableTheme(
     borderColor = "#dfe2e5",
     stripedColor = "#f6f8fa",
     style = list(fontSize = "13px", fontFamily = "Roboto, Helvetica, Arial, sans-serif"),
     searchInputStyle = list(width = "100%")
-   )
   )
-                           
-reactable_tbl                           
-                          
+)
 
 ```
 
----
+### The Diagnostic Framework
+In quantitative validation workflows, evaluating an MCMC sampler involves three core criteria:
+	1.	Stationarity: The chain has converged to the target distribution and is invariant to initialization coordinates.
+	2.	Mixing Across Dimensions: The chain traverses parameter space without prolonged freezing or sluggish diffusion.
+	3.	Effective Sample Size (ESS): Autocorrelation decays rapidly enough to provide sufficient independent information for quantile estimation (Vehtari et al., 2021).
 
-### The Institutional Diagnostic Mandate
-In production risk management, Markov Chain Monte Carlo must not be treated as a black-box generator. Because MCMC produces a sequence of dependent draws, risk professionals must run rigorous convergence diagnostics before relying on tail estimates (VaR and Expected Shortfall).
 
-A well-behaved MCMC sampler satisfies three criteria:
-	
-1. **Stationarity:** The chain has converged to the target joint distribution and is independent of its initialization coordinates.
-2. **Effective Mixing:** The chain moves freely through the parameter space rather than freezing or wandering slowly.
-3.	**Decaying Autocorrelation:** Successive draws become independent quickly enough to supply sufficient Effective Sample Size (ESS) for downstream quantile calculations.
+### Multi-Chain Mixing Verification
+To evaluate convergence, two independent chains are tracked from distinct initialization vectors (‭$\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}$‬‭‬ vs. ‭$\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}$‬‭‬‭‬).
 
----
-
-#### Multi-Chain Mixing Verification
-To verify that the sampler is not trapped on local peaks, two independent chains are initialized from distinct starting vectors (‭$\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}$‬‭‬ vs. ‭$\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}$‬‭‬‭‬).
-
-```{r munti-chain-trace, fig.cap = "Figure 1: Two indedendent MCMC chains tracking Tech Growth expected returns from separate cold starts."}
+```{r multi-chain-trace, fig.cap = "Figure 1: Two independent MCMC chains tracking Tech Growth expected returns"}
 
 #| fig-width: 10
 #| fig-height: 8
@@ -150,7 +126,7 @@ ggplot(trace_df, aes(x = iteration, y = Tech_Growth, color = Chain)) +
   scale_y_continuous(labels = label_percent(accuracy = 0.01)) +
   labs(
     title = "Multi-Chain Stationarity Diagnostic: Tech Growth Exposure",
-    subtitle = "Both chains rapidly converge from disparate starting values into the identical posterior band",
+    subtitle = "Both chains navigate into the stationary posterior distribution",
     x = "Iteration Step",
     y = "Daily Expected Return",
     color = "Sampler Execution"
@@ -159,25 +135,15 @@ ggplot(trace_df, aes(x = iteration, y = Tech_Growth, color = Chain)) +
 
 ```
 
-**Understanding the Multi-Chain Stationary Diagnostic Plot** <br/>
-The easiest way to is to focus on two things: convergence and intertwining.
+**Diagnostic Review: Multi-Chain Trace**
 
-1. **Initial Forgetting (Iterations 1–300):** On the left side, the two lines begin at different heights. Both colors quickly rise and meet in the same horizontal band, long before the 500-step mark. This shows that the algorithm quickly "forgets" its starting point.
-
-2. **The "Braided Rope" (Iterations 500–3,000):** After the red dashed line, the two separate chains fully overlap and move together in the same band, starting at about $0.15\%$ and $0.50\%$. Neither chain moves off on its own, gets stuck, or drifts to a different value. If two blindfolded explorers start in different places but end up walking along the same ridge, it shows they are following the real landscape, not just retracing their starting points.
-
-**Key Insights** <br/>
-The plot demonstrates why Markov Chain Monte Carlo overcomes the curse of dimensionality where numerical mathematics fails:
-
-1. **No Initial Knowledge Required:** The sampler was given zero prior guidance on where the peak probability lay. It started in cold, arbitrary locations and navigated through 10-dimensional space using only local random steps and the Metropolis acceptance rule. Yet, both chains independently discovered the high-density posterior core within a fraction of a second.
-2. **Self-Healing Ergodicity:** In traditional numerical optimization, algorithms often get trapped in "local traps" (false peaks) and report incorrect answers depending on their initialization. In MCMC, the ability to occasionally accept worse moves guarantees that both chains overcome local obstacles, explore the identical parameter space, and settle into the true stationary distribution.
-3. **Institutional Defensibility:** For risk and regulatory model-validation teams, this plot provides empirical proof of convergence. Because both chains independently visit the same parameter values with identical frequencies, risk managers can be confident that the downstream Value at Risk (VaR) and Expected Shortfall (ES) figures reflect genuine market distribution dynamics rather than computational noise.
+1. **Stationary Overlap:** Discarding the first 500 iterations eliminates initial burn-in, after which both chains traverse the same posterior band.
+2. **Initialization Distance Note:** The initialization vectors (‭$\mathbf{0}$‬ vs. ‭$0.001 \cdot \mathbf{1}$‬‭‬) differ by approximately 25 basis points annualized. While this demonstrates local convergence into the posterior mode, formal model validation typically tests widely separated, overdispersed starting values (e.g., ‭$\pm 3 \cdot \text{SE}$‬‭‬) across 4 or more chains to confirm mixing across distant regions of parameter space.
 
 ---
 
-#### Autocorrelation Decay Plot 
-
-Because MCMC proposes local jumps, consecutive iterations are positively correlated. High autocorrelation reduces the information value of each draw.
+### Autocorrelation Decay Analysis
+Because Metropolis-Hastings operates via local proposals, consecutive draws exhibit positive serial dependence.
 
 ```{r acf-plot, fig.cap = "Figure 2: Autocorrelation decay across consecutive MCMC lags for selected portfolio risk factors"}
 
@@ -205,7 +171,7 @@ ggplot(acf_combined, aes(x = lag, y = autocorrelation, fill = factor)) +
   scale_fill_manual(values = c("#2c3e50", "#2980b9", "#27ae60")) +
   labs(
     title = "Autocorrelation Decay by Factor",
-    subtitle = "Autocorrelation declines rapidly toward zero within 15–20 lags",
+    subtitle = "Autocorrelation decay profiles highlight the impact of isotropic proposal scaling on correlated parameters",
     x = "Lag Step",
     y = "Autocorrelation Coefficient",
     fill = "Risk Factor"
@@ -214,23 +180,18 @@ ggplot(acf_combined, aes(x = lag, y = autocorrelation, fill = factor)) +
 
 ```
 
-**Understanding the Autocorrelation Decay by Factor Plot** <br/>
-Focus on two things: the slope and the height of the bars.
+**Diagnostic Analysis: The Proposal-Geometry Mismatch**
 
-1. **The Downward Waterfall (Information Shedding):** Each factor begins at a height of 1.00 and drops lower as the lag increases. Since Metropolis-Hastings moves in small steps, each step looks similar to the last. The key is how quickly the bars get shorter. If they drop quickly, the sampler quickly loses memory of its past, which helps it explore new areas without bias.
-2. **Factor Differences (Treasuries vs. Tech Growth):** US Treasuries (green) show the fastest drop, falling below 0.50 by lag 7 and reaching near-baseline by lag 20. Since Treasury duration is tightly limited, the chain covers its full range in just a few steps. Tech Growth (navy) drops more slowly, staying around 0.65 even at lag 35. Because Tech Growth has higher return volatility (26% annualized) and is linked to several other equity factors, it takes more steps to remove serial correlation.
+The autocorrelation profiles highlight an operational challenge when using an unscaled, isotropic proposal (‭$\sigma_\epsilon \mathbf{I}$‬‭‬) across correlated dimensions:
 
-**Key Insights** <br/>
-This plot reveals the statistical engine that makes Markov Chain Monte Carlo work in high dimensions:
+1. **Treasuries (10Y):** Autocorrelation decays quickly, dropping below 0.50 by lag 7 and reaching baseline levels near lag 20. With low return volatility (8%), the parameter space is compact.
+2. **Equity Beta (Tech Growth):** Autocorrelation exhibits high persistence, remaining around 0.65 at lag 35. Because the scalar proposal step (‭$\sigma_\epsilon = 0.00032$‬‭‬) is applied identically across all dimensions, it does not account for the differing scales (Treasuries ‭$\text{SE} \approx 0.03\%$‬‭‬‭‬ vs. Tech ‭$\text{SE} \approx 0.10\%$‬‭‬‭‬) or the correlated geometry of the target density. As a result, the chain traverses the principal variance axes slowly, leading to persistent serial correlation.
 
-1. **Uncovering the Real Information Count (ESS):** If an analyst runs 2,500 iterations of a model, standard statistics would treat these as 2,500 independent data points. But in a random walk, each step depends on the previous one. This chart helps measure that dependence. By looking at how autocorrelation fades, you can find the Effective Sample Size (ESS). This shows that out of 2,500 draws, hundreds of truly independent samples are obtained, which can used for Value at Risk (VaR) and Expected Shortfall (ES).
-2. **The "Wait, Not a Dead End" Trade-Off:** In standard high-dimensional integration, solving 10 dimensions directly is a mathematical wall (10 billion calculations). In MCMC, temporary autocorrelation is accepted  in exchange for being able to navigate the space at all. Instead of an impossible integral, the only cost is running a few extra hundred iterations so the chain can shed its memory.
-3. **Auditable Governance for Model Validation:** Model validation typically committees reject simulation models that suffer from "sticky" or sluggish mixing. This diagnostic provides an empirical audit: it proves the chain is continuously circulating through the 10-dimensional space rather than vibrating in place, ensuring the downside risk percentiles are statistically sound rather than artifacts of sampling drag.
 
 ---
 
-#### Effective Sample Size (ESS) Summary
-Out of `{r} txt_n_draws` post-burn iterations, the effective independent sample size for Tech_Growth is `{r} txt_ess_tech` draws. In risk management, an ESS above 400 is considered adequate for estimating 95% and 99% portfolio quantiles without excessive variance.
+### Robust Effective Sample Size (ESS) Audit
+To avoid truncation bias in persistent chains, Effective Sample Size is computed using Geyer's initial sequence estimator across all post-burn draws:
 
 ```{r ess-table}
 
@@ -248,7 +209,7 @@ tibble(
   gt() %>%
   tab_header(
     title = md("**MCMC Chain Efficiency & Effective Sample Size Audit**"),
-    subtitle = "Diagnostic evaluation of chain correlation and sampling capacity"
+    subtitle = "Robust Geyer initial-sequence evaluation of chain correlation and sampling capacity"
   ) %>%
   cols_label(
     Asset_Class = "Risk Factor Asset",
@@ -264,29 +225,26 @@ tibble(
 
 ```
 
-**Understanding the Effective Sample Size (ESS) Summary** <br/>
-In standard Monte Carlo, each draw is independent, so 2,500 iterations give 2,500 unique data points. In MCMC, each step depends on the previous one, which creates correlation between nearby draws. This audit table helps visualize how much independent information can be obtained from the 2,500 post-burn iterations.
 
-1. **Risk Factor Asset:** This is the exposure being audited, such as Tech Growth, 10Y Treasuries, or US Large Cap. 
-2. **Post-Burn Draws:** The number of iterations kept after removing the initial biased samples, here 2,500 draws.<br/>
-3. **Effective Draws (ESS):** The actual sample size after accounting for the effects of autocorrelation. $N / [1 + 2 \sum \rho_k]$???????????????). <br/>
-4. **Efficiency Ratio:** The ratio of effective draws to the total number of draws. $\text{ESS} / \text{Nominal Draws}$???. For Random-Walk Metropolis in ~10 dimensions, 15% to 40% represents an efficient, well-mixed chain. <br/>
-5. **Lag-10 Autocorr:** This measures the correlation between a draw and the value 10 steps later. Lower values mean the parameters are explored more quickly. <br/>
+**Model Validation Findings**
 
-**Key Insights** <br/>
-Three keys to focus on:
+A model validation review of the ESS diagnostics yields three key takeaways:
 
-1. **Adequate Sample Size for Tail Risk:** Regulators usually recommend an ESS above 300 to 400 for stable 95% and 99% portfolio quantiles. Since our effective sample sizes are well above this, our Value at Risk (1.05%) and Expected Shortfall (1.33%) results are statistically reliable, not just random noise. 
-2. **Macro Assets Clear Autocorrelation Faster:** 10Y Treasuries have higher sampling efficiency and lower Lag-10 autocorrelation than Tech Growth. Since Treasuries have lower volatility (8% compared to 26%), their samples move through the distribution faster and lose serial memory more quickly.
-3. **The Computational Trade-Off:** Instead of running 10 billion grid-search calculations in 10 dimensions, the algorithm accepts some sampling drag (about 20% to 30% efficiency) to avoid an impossible integral. With a runtime under two seconds, it produces hundreds of independent draws, making the problem manageable and ready for audit.
+1 **Sampling Efficiency Reflects Correlation Drag:** Out of `{r} txt_n_draws` post-burn iterations, Tech Growth yields `{r} txt_ess_tech` effective independent draws—a sampling efficiency of approximately 1.5% to 2.0%. While the acceptance rate of `{r} txt_acc_c1` falls within standard aggregate ranges, the chain experiences high serial correlation due to isotropic proposal variance. <br/>
+2. **Quantile Precision Considerations:** Established Bayesian validation standards (Vehtari et al., 2021) recommend an ESS of at least 300 to 400 draws to produce stable tail quantiles and bound Monte Carlo standard error. While an ESS of ‭$\approx 39\text{--}82$‬‭‬‭‬ draws is sufficient to estimate the posterior mean vector, downstream tail risk quantiles (such as 95% VaR and Expected Shortfall credible intervals) retain non-trivial Monte Carlo variance. <br/>
+3. **Paths to Algorithmic Improvement:** This diagnostic demonstrates the trade-offs of first-principles isotropic Random-Walk Metropolis. In production risk environments, proposal efficiency can be improved by:
+
+-   **Proposal Covariance Preconditioning:** Scaling jumps using the empirical covariance matrix ‭$\mathbf{\Sigma}_{\text{prop}} = \frac{2.38^2}{d} \hat{\mathbf{\Sigma}}_{\text{post}}$‬‭‬‭‬ (Roberts & Rosenthal, 2001).
+-	 **Adaptive Sampling:** Implementing adaptive Metropolis algorithms to dynamically learn posterior geometry.
+-	 **Gradient-Based Methods:** Using Hamiltonian Monte Carlo (HMC) or NUTS to navigate high-dimensional curvature efficiently.
+
+See the exact-posterior benchmark on the Portfolio Risk page for the effect of low ESS on credible-interval width.
 
 ---
 
 ### Toolchain & Runtime Environment
-To ensure complete reproducibility across environments and CI/CD pipelines, this documentation suite tracks the exact system architecture and library dependencies at render time.
 
 ```
-
 mcmc-in-action/
 ├── _quarto.yml               # Quarto configuration (Sandstone theme, navbar)
 ├── index.qmd                 # Intuition & 2D random walk visualization
@@ -300,12 +258,9 @@ mcmc-in-action/
 │   └── plots.R               # ggplot2 themes and diagnostic plots
 └── data/
     └── synthetic_returns.csv # Frozen 250-day x 10-factor returns matrix
-
 ```
 
----
-
-### Session Information
+#### Session Information
 
 ```{r session-info, echo = FALSE}
 
@@ -314,20 +269,14 @@ sessioninfo::session_info()
 ```
 
 ```{css, echo = FALSE}
-
-/*  CSS - Styles for the main-table container, title, and subtitle */
-
-  .react_table {
+.react_table {
   padding-top: 5px;
   padding-bottom: 5px;
-  padding-left:5px;
+  padding-left: 5px;
   padding-right: 5px;
-  max-height:600px;
-  }
+  max-height: 600px;
+}
 
 ```
 
 
-
-
-```

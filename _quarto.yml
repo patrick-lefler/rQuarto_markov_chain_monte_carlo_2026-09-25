@@ -19,10 +19,14 @@ website:
 
 format:
   html:
+    code-fold: true
+    df-print: paged
+    fig-width: 8
+    fig-height: 5
+    lightbox: true
+    linkcolor: "#0166CC"
     theme: sandstone
     toc: true
     toc-depth: 3
-    code-fold: true
-    fig-width: 8
-    fig-height: 5
-    df-print: paged
+    
+    
