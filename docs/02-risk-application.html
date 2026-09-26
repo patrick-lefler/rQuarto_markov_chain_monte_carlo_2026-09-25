@@ -77,9 +77,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-f194567e5c6efeb013b28392ff62c8b4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2756f66716bd1dda30967d85d0a43f39.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2756f66716bd1dda30967d85d0a43f39.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-2756f66716bd1dda30967d85d0a43f39.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-fc53044ae88bbd6ad615d0ea81556273.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-fc53044ae88bbd6ad615d0ea81556273.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-fc53044ae88bbd6ad615d0ea81556273.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -193,6 +196,9 @@ window.Quarto = {
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#sampling-the-10-factor-joint-posterior" id="toc-sampling-the-10-factor-joint-posterior" class="nav-link" data-scroll-target="#sampling-the-10-factor-joint-posterior">Sampling the 10-Factor Joint Posterior</a></li>
+  <li><a href="#benchmarking-mcmc-against-the-exact-posterior" id="toc-benchmarking-mcmc-against-the-exact-posterior" class="nav-link" data-scroll-target="#benchmarking-mcmc-against-the-exact-posterior">Benchmarking MCMC Against the Exact Posterior</a></li>
+  <li><a href="#what-the-benchmark-shows" id="toc-what-the-benchmark-shows" class="nav-link" data-scroll-target="#what-the-benchmark-shows">What the Benchmark Shows</a></li>
+  <li><a href="#understanding-the-marginal-density-plots" id="toc-understanding-the-marginal-density-plots" class="nav-link" data-scroll-target="#understanding-the-marginal-density-plots">Understanding the Marginal Density Plots</a></li>
   </ul>
 </nav>
     </div>
@@ -788,6 +794,1095 @@ window.Quarto = {
 <li><strong>Mean Uncertainty Bounds (‭<span class="math inline">\(\text{VaR}_{95\%}\)</span>‬):</strong> For an equal-weighted portfolio, parametric Value at Risk is governed by ‭<span class="math inline">\(\text{VaR}_{95\%} \approx -\mathbf{w}'\boldsymbol{\mu} + 1.645 \cdot \sigma_p\)</span>‬‭‬‭‬‭‬‭‬‭‬. Because covariance is held constant, the 12 basis point spread between the 5th and 95th percentiles (‭<span class="math inline">\(0.99\%\)</span>‬‭‬ to ‭<span class="math inline">\(1.11\%\)</span>‬‭‬) reflects the estimation uncertainty of the portfolio mean alone (‭<span class="math inline">\(\pm 1.645 \cdot \sigma_p / \sqrt{n}\)</span>‬‭‬‭‬), setting aside covariance uncertainty.</li>
 <li><strong>Expected Shortfall Ratio (‭<span class="math inline">\(\text{ES}_{95\%}\)</span>‬):</strong> The ratio of Expected Shortfall to Value at Risk (‭<span class="math inline">\(1.33\% / 1.05\% \approx 1.27\)</span>‬‭‬ ‭‬‭‬ ‭‬) reflects standard Gaussian tail expectation constants (‭<span class="math inline">\(\approx 2.063 / 1.645\)</span>‬‭‬), adjusted for the portfolio drift. Under a normal likelihood, this metric captures linear downside expectation rather than excess kurtosis or heavy-tailed structural shocks.</li>
 </ol>
+</section>
+</section>
+<section id="benchmarking-mcmc-against-the-exact-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="benchmarking-mcmc-against-the-exact-posterior">Benchmarking MCMC Against the Exact Posterior</h3>
+<p>Because this model is conjugate, the exact posterior is known. With the diffuse prior \(\boldsymbol{\mu} \sim \mathcal{N}(\mathbf{0}, 10^3\mathbf{I})\), the posterior is Gaussian with covariance \(\mathbf{V} = (n\hat{\Sigma}^{-1} + 10<sup>{-3}\mathbf{I})</sup>{-1}\). Portfolio VaR and ES are linear in \(\boldsymbol{\mu}\), so their exact posteriors are also normal. That lets us check every MCMC output against the true answer.</p>
+<div class="cell">
+<div id="tbl-tail-benchmark" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-tail-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1
+</figcaption>
+<div aria-describedby="tbl-tail-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div id="ldpnszdboe" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ldpnszdboe table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#ldpnszdboe thead, #ldpnszdboe tbody, #ldpnszdboe tfoot, #ldpnszdboe tr, #ldpnszdboe td, #ldpnszdboe th {
+  border-style: none;
+}
+
+#ldpnszdboe p {
+  margin: 0;
+  padding: 0;
+}
+
+#ldpnszdboe .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#ldpnszdboe .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#ldpnszdboe .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#ldpnszdboe .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#ldpnszdboe .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#ldpnszdboe .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#ldpnszdboe .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#ldpnszdboe .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#ldpnszdboe .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#ldpnszdboe .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#ldpnszdboe .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#ldpnszdboe .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#ldpnszdboe .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#ldpnszdboe .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#ldpnszdboe .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldpnszdboe .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#ldpnszdboe .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#ldpnszdboe .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#ldpnszdboe .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldpnszdboe .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#ldpnszdboe .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldpnszdboe .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#ldpnszdboe .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldpnszdboe .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ldpnszdboe .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ldpnszdboe .gt_left {
+  text-align: left;
+}
+
+#ldpnszdboe .gt_center {
+  text-align: center;
+}
+
+#ldpnszdboe .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#ldpnszdboe .gt_font_normal {
+  font-weight: normal;
+}
+
+#ldpnszdboe .gt_font_bold {
+  font-weight: bold;
+}
+
+#ldpnszdboe .gt_font_italic {
+  font-style: italic;
+}
+
+#ldpnszdboe .gt_super {
+  font-size: 65%;
+}
+
+#ldpnszdboe .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#ldpnszdboe .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#ldpnszdboe .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#ldpnszdboe .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#ldpnszdboe .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#ldpnszdboe .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#ldpnszdboe .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#ldpnszdboe .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#ldpnszdboe div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table do-not-create-environment caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<thead>
+<tr class="gt_heading header">
+<td colspan="3" class="gt_heading gt_title gt_font_normal"><strong>Tail Risk: MCMC vs.&nbsp;Exact Posterior</strong></td>
+</tr>
+<tr class="gt_heading even">
+<td colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Equal-weighted portfolio, 1-day horizon</td>
+</tr>
+<tr class="gt_col_headings header">
+<th id="Metric" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Metric</th>
+<th id="MCMC" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">MCMC</th>
+<th id="Exact" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Exact</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="Metric">VaR 95% — mean</td>
+<td class="gt_row gt_left" headers="MCMC">1.046%</td>
+<td class="gt_row gt_left" headers="Exact">1.051%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Metric">VaR 95% — 90% interval</td>
+<td class="gt_row gt_left" headers="MCMC">0.99% – 1.11%</td>
+<td class="gt_row gt_left" headers="Exact">0.98% – 1.12%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Metric">ES 95% — mean</td>
+<td class="gt_row gt_left" headers="MCMC">1.329%</td>
+<td class="gt_row gt_left" headers="Exact">1.334%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Metric">ES 95% — 90% interval</td>
+<td class="gt_row gt_left" headers="MCMC">1.27% – 1.39%</td>
+<td class="gt_row gt_left" headers="Exact">1.26% – 1.40%</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div class="cell">
+<div id="tbl-factor-benchmark" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-factor-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2
+</figcaption>
+<div aria-describedby="tbl-factor-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div id="rssfqfwjjo" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#rssfqfwjjo table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#rssfqfwjjo thead, #rssfqfwjjo tbody, #rssfqfwjjo tfoot, #rssfqfwjjo tr, #rssfqfwjjo td, #rssfqfwjjo th {
+  border-style: none;
+}
+
+#rssfqfwjjo p {
+  margin: 0;
+  padding: 0;
+}
+
+#rssfqfwjjo .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#rssfqfwjjo .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#rssfqfwjjo .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#rssfqfwjjo .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#rssfqfwjjo .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#rssfqfwjjo .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#rssfqfwjjo .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#rssfqfwjjo .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#rssfqfwjjo .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#rssfqfwjjo .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#rssfqfwjjo .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#rssfqfwjjo .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#rssfqfwjjo .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#rssfqfwjjo .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#rssfqfwjjo .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rssfqfwjjo .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#rssfqfwjjo .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#rssfqfwjjo .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#rssfqfwjjo .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rssfqfwjjo .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#rssfqfwjjo .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rssfqfwjjo .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#rssfqfwjjo .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rssfqfwjjo .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#rssfqfwjjo .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rssfqfwjjo .gt_left {
+  text-align: left;
+}
+
+#rssfqfwjjo .gt_center {
+  text-align: center;
+}
+
+#rssfqfwjjo .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#rssfqfwjjo .gt_font_normal {
+  font-weight: normal;
+}
+
+#rssfqfwjjo .gt_font_bold {
+  font-weight: bold;
+}
+
+#rssfqfwjjo .gt_font_italic {
+  font-style: italic;
+}
+
+#rssfqfwjjo .gt_super {
+  font-size: 65%;
+}
+
+#rssfqfwjjo .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#rssfqfwjjo .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#rssfqfwjjo .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#rssfqfwjjo .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#rssfqfwjjo .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#rssfqfwjjo .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#rssfqfwjjo .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#rssfqfwjjo .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#rssfqfwjjo div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table do-not-create-environment caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<thead>
+<tr class="gt_heading header">
+<td colspan="7" class="gt_heading gt_title gt_font_normal"><strong>Per-Factor Posterior: MCMC vs.&nbsp;Exact</strong></td>
+</tr>
+<tr class="gt_heading even">
+<td colspan="7" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Daily expected returns; SD Ratio &lt; 1 means MCMC under-disperses</td>
+</tr>
+<tr class="gt_col_headings header">
+<th id="Factor" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Factor</th>
+<th id="MCMC_Mean" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">MCMC Mean</th>
+<th id="Exact_Mean" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Exact Mean</th>
+<th id="MCMC_SD" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">MCMC SD</th>
+<th id="Exact_SD" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Exact SD</th>
+<th id="SD_Ratio" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">SD Ratio</th>
+<th id="Mean_Error_SD" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Mean Error (SDs)</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="Factor">US_LargeCap</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">0.177%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">0.174%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.053%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.063%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.84</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.05</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Factor">US_SmallCap</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">0.122%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">0.126%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.081%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.092%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.88</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">−0.04</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Factor">Tech_Growth</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">0.338%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">0.323%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.091%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.101%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.90</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.14</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Factor">EU_Equity</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">0.044%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">0.041%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.059%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.072%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.82</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.03</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Factor">EM_Equity</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">0.228%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">0.226%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.083%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.095%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.87</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.02</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Factor">US_Treas_10Y</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">−0.022%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">−0.021%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.030%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.031%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.97</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">−0.03</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Factor">US_Corp_Credit</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">−0.045%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">−0.049%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.036%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.040%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.91</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.10</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Factor">Commodities</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">−0.066%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">−0.071%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.072%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.082%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.89</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.06</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Factor">Gold</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">−0.055%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">−0.057%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.067%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.062%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">1.08</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.03</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Factor">Real_Estate</td>
+<td class="gt_row gt_right" headers="MCMC_Mean">−0.037%</td>
+<td class="gt_row gt_right" headers="Exact_Mean">−0.056%</td>
+<td class="gt_row gt_right" headers="MCMC_SD">0.070%</td>
+<td class="gt_row gt_right" headers="Exact_SD">0.077%</td>
+<td class="gt_row gt_right" headers="SD_Ratio">0.91</td>
+<td class="gt_row gt_right" headers="Mean_Error_SD">0.25</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="what-the-benchmark-shows" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-benchmark-shows">What the Benchmark Shows</h3>
+<p>The MCMC point estimates match the exact posterior: portfolio VaR and ES means agree to the second decimal place. The <strong>credible intervals</strong> are narrower than they should be. The MCMC VaR interval is about 83% of the exact width, so the sampler understates parameter uncertainty.</p>
+<p>The per-factor table shows where this comes from. Factors with the slowest mixing (lowest ESS on the Audit &amp; Diagnostics page) show the largest SD shortfall and the largest mean error. With only 19–122 effective draws, the chain has not explored the posterior tails fully.</p>
+<p><strong>Implication for risk reporting:</strong> a poorly mixed sampler can report the right central estimate while producing credible intervals that are too narrow, which understates parameter risk. Without a closed-form benchmark or proper diagnostics, this failure would go unnoticed.</p>
 <p><strong>Parameter Distributions vs.&nbsp;Generative Ground Truth</strong></p>
 <p>Because the fixture was simulated from known parameters, we can compare the sampled MCMC distributions against both the generative population values and the analytical sample estimates.</p>
 <div class="cell">
@@ -802,7 +1897,7 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="02-risk-application_files/figure-html/marginal-plot-tech-1.png" class="img-fluid figure-img" width="768"></p>
+<p><a href="02-risk-application_files/figure-html/marginal-plot-tech-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure 1: Marginal posterior distribution for Tech Growth expected daily returns."><img src="02-risk-application_files/figure-html/marginal-plot-tech-1.png" class="img-fluid figure-img" width="768" alt="Figure 1: Marginal posterior distribution for Tech Growth expected daily returns."></a></p>
 <figcaption>Figure 1: Marginal posterior distribution for Tech Growth expected daily returns.</figcaption>
 </figure>
 </div>
@@ -820,21 +1915,35 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="02-risk-application_files/figure-html/marginal-plot-treas-1.png" class="img-fluid figure-img" width="768"></p>
+<p><a href="02-risk-application_files/figure-html/marginal-plot-treas-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure 2: Marginal posterior distribution for 10Y US Treasury returns(Duration hedge)."><img src="02-risk-application_files/figure-html/marginal-plot-treas-1.png" class="img-fluid figure-img" width="768" alt="Figure 2: Marginal posterior distribution for 10Y US Treasury returns(Duration hedge)."></a></p>
 <figcaption>Figure 2: Marginal posterior distribution for 10Y US Treasury returns(Duration hedge).</figcaption>
 </figure>
 </div>
 </div>
 </div>
 <p><strong>Understanding the Marginal Density Plots</strong></p>
-<p>The marginal plots illustrate the visited parameter space for two distinct risk factors:</p>
-<ol type="1">
-<li><strong>Tech Growth:</strong> Daily expected returns center near the sample mean ‭<span class="math inline">\(\bar{x} \approx +0.05\%\)</span>‬‭‬‭‬‭‬, spanning roughly ‭<span class="math inline">\(-0.08\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.18\%\)</span>‬‭‬ daily. Given an annualized volatility of 26% (‭<span class="math inline">\(\approx 1.64\%\)</span>‬‭‬ daily), the standard error over 250 trading days is approximately ‭<span class="math inline">\(\text{SE} \approx 1.64\% / \sqrt{250} \approx 0.10\%\)</span>‬‭‬‭‬ ‭‬‭‬‭‬. The generative benchmark (‭<span class="math inline">\(+11.0\%\)</span>‬‭‬ annualized ‭<span class="math inline">\(\approx +0.0437\%\)</span>‬‭‬‭‬ daily) sits well within the empirical posterior distribution.</li>
-<li><strong>US Treasuries (10Y):</strong> The Treasury distribution exhibits a narrower posterior dispersion (spanning ‭<span class="math inline">\(-0.04\%\)</span>‬‭‬ to ‭<span class="math inline">\(+0.07\%\)</span>‬‭‬ daily). With lower annualized return volatility (8%), the parameter standard error is tighter (‭<span class="math inline">\(\text{SE} \approx 0.03\%\)</span>‬‭‬‭‬), centering consistently over the generative benchmark (‭<span class="math inline">\(+3.5\%\)</span>‬‭‬ annualized ‭<span class="math inline">\(\approx +0.0139\%\)</span>‬‭‬‭‬ daily).</li>
-</ol>
-
-
 </section>
+<section id="understanding-the-marginal-density-plots" class="level3">
+<h3 class="anchored" data-anchor-id="understanding-the-marginal-density-plots">Understanding the Marginal Density Plots</h3>
+<p><strong>Tech Growth:</strong> The posterior centers on the sample mean, approximately +0.34% daily, with a posterior standard deviation of about +0.10%. The 90% credible interval runs from +0.17% to +0.47%. The true value used to generate the data, +0.044% daily (+11.0% annualized), lies about 2.8 posterior standard deviations below the center.</p>
+<p>This is not a sampler error. By chance, this 250-day sample shows a Tech Growth drift of roughly 82% annualized. The posterior correctly reports what the data support; the data simply don’t support the true value.</p>
+<p><strong>US Treasuries (10Y):</strong> The posterior centers near -0.02% daily, with a standard deviation of about +0.03% and a 90% credible interval of -0.07% to +0.03%. The true value (+0.014% daily) lies about 1.1 standard deviations from the center.</p>
+<p>Narrowing Tech Growth’s uncertainty to 0.01% daily would take about 25,451 trading days of data.</p>
+<div class="callout callout-style-default callout-important no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Key Takeaway: Parameter Recovery Is a Data Problem, Not a Sampler Problem
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>MCMC recovers the <strong>posterior</strong>, not the <strong>truth</strong>. With 250 daily observations, mean returns are poorly identified: Tech Growth’s posterior standard deviation (≈0.10% daily) is more than twice its true mean. Narrowing that uncertainty to about 0.01% daily would take roughly 27,000 trading days of data. For risk managers, a year of history can’t reliably tell a high-drift asset from a low-drift one. That estimation uncertainty is exactly what the VaR and ES credible intervals are meant to capture.</p>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->
@@ -1239,6 +2348,38 @@ window.Quarto = {
   });
   </script>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 
