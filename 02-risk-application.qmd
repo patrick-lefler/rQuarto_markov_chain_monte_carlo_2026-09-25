@@ -207,10 +207,9 @@ narrower than they should be. The MCMC VaR interval is about
 `r sprintf("%.0f%%", width_ratio * 100)` of the exact width, so the 
 sampler understates parameter uncertainty.
 
-The per-factor table shows where this comes from. Factors with the 
-slowest mixing (lowest ESS on the Audit & Diagnostics page) show the 
-largest SD shortfall and the largest mean error. With only 19–122 
-effective draws, the chain has not explored the posterior tails fully.
+Nine of ten factors under-disperse (SD ratio 0.82–0.97). The pattern is 
+broad-based rather than concentrated in the lowest-ESS factors, consistent 
+with chains that have explored only part of the posterior.
 
 **Implication for risk reporting:** a poorly mixed sampler can report 
 the right central estimate while producing credible intervals that are 
@@ -289,8 +288,8 @@ shows a Tech Growth drift of roughly `r sprintf("%.0f%%", tech_ann * 100)`
 annualized. The posterior correctly reports what the data support; 
 the data simply don't support the true value.
 
-**US Treasuries (10Y):** The posterior centers near `r pct(treas_mean)` 
-daily, with a standard deviation of about `r pct(treas_sd)` and a 90% 
+**US Treasuries (10Y):** The posterior centers near `r sprintf("%.2f%%", treas_mean*100)`
+daily, with a standard deviation of about `r sprintf("%.2f%%", treas_sd*100)` and a 90% 
 credible interval of `r pct(treas_ci[1])` to `r pct(treas_ci[2])`. 
 The true value (`r pct(true_treas, 3)` daily) lies about 
 `r sprintf("%.1f", abs(treas_z))` standard deviations from the center.

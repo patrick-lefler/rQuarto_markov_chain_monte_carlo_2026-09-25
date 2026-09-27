@@ -1033,7 +1033,7 @@ Table&nbsp;1
 <span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
 <span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">Asset_Class =</span> <span class="st">"Risk Factor Asset"</span>,</span>
 <span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total_Post_Burn_Draws =</span> <span class="st">"Post-Burn Draws"</span>,</span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">Effective_Sample_Size =</span> <span class="st">"Effective Draws (ESS)"</span>,</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">Effective_Sample_Size =</span> <span class="st">"ESS (Chain 1)"</span>,</span>
 <span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">Pooled_Bulk_ESS =</span> <span class="st">"Bulk ESS (4 chains)"</span>,</span>
 <span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">Pooled_Tail_ESS =</span> <span class="st">"Tail ESS (4 chains)"</span>,</span>
 <span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sampling_Efficiency =</span> <span class="st">"Efficiency Ratio"</span>,</span>
@@ -1506,7 +1506,7 @@ Table&nbsp;1
 <tr class="gt_col_headings header">
 <th id="Asset_Class" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Risk Factor Asset</th>
 <th id="Total_Post_Burn_Draws" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Post-Burn Draws</th>
-<th id="Effective_Sample_Size" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Effective Draws (ESS)</th>
+<th id="Effective_Sample_Size" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">ESS (Chain 1)</th>
 <th id="Pooled_Bulk_ESS" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Bulk ESS (4 chains)</th>
 <th id="Pooled_Tail_ESS" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Tail ESS (4 chains)</th>
 <th id="Sampling_Efficiency" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Efficiency Ratio</th>
@@ -1547,10 +1547,10 @@ Table&nbsp;1
 </div>
 </div>
 </div>
-<p>Pooled across all four chains (10000 draws), bulk ESS for Tech Growth is 65 and tail ESS is 132, still well below the recommended 400, consistent with the split-\(\hat{R}\) results above.</p>
-<p><strong>Model Validation Findings</strong> <br> A model validation review of the ESS diagnostics yields three key takeaways:</p>
+<p>Pooled across all four chains 10,000 draws), bulk ESS for Tech Growth is 65 and tail ESS is 132, still well below the recommended 400, consistent with the split-\(\hat{R}\) results above. Only the Treasury tail ESS (640) clears the threshold</p>
+<p><strong>Model Validation Findings</strong> <br> A model validation review of the ESS diagnostics yields four key takeaways:</p>
 <ol type="1">
-<li><p><strong>Sampling Efficiency Reflects Correlation Drag:</strong> Out of 2,500 post-burn iterations, Tech Growth yields only 16 effective independent draws, a sampling efficiency of 0.6%. Across the three audited factors, ESS ranges from 16 to 65. The acceptance rate of 28.9% falls within the conventional range, which shows that a healthy acceptance rate does not guarantee good mixing. The single, isotropic proposal step is too small for high-variance factors such as Tech Growth, so the chain crosses their posterior range slowly.</p></li>
+<li><p><strong>Sampling Efficiency Reflects Correlation Drag:</strong> Out of 2,500 post-burn iterations in Chain 1, Tech Growth yields only 16 effective independent draws, a sampling efficiency of 0.6%. Across the three audited factors, single-chain ESS ranges from 16 to 65; pooled across four chains (10,000 draws), bulk ESS is 65–316, still below the recommended 400 for every factor. The acceptance rate of 28.9% falls within the conventional range, which shows that a healthy acceptance rate does not guarantee good mixing. The single, isotropic proposal step is too small for high-variance factors such as Tech Growth, so the chain crosses their posterior range slowly.</p></li>
 <li><p><strong>Independent Verification of the Estimator:</strong> ESS values from <code>compute_ess_robust()</code> (Geyer initial monotone sequence) were cross-checked against <code>posterior::ess_basic()</code>, which returned 14.5, 55.2, and 20.5 for Tech Growth, Treasuries, and US Large Cap. The two estimators agree closely. The reference package reads slightly lower because it uses split chains and a more conservative truncation rule.</p></li>
 <li><p><strong>Quantile Precision Considerations:</strong> Vehtari et al.&nbsp;(2021) recommend an ESS of at least 400 for reliable posterior summaries, and more for tail quantiles. Current ESS values of 16–65 fall well short. Even the posterior mean is imprecise: with an ESS of 16, the Monte Carlo standard error for Tech Growth is about 25% of a posterior standard deviation. The 5th and 95th percentiles that define the VaR and Expected Shortfall credible intervals are less stable still. The exact-posterior benchmark on the Portfolio Risk page shows the practical result: the MCMC credible intervals are too narrow, understating parameter risk.</p></li>
 <li><p><strong>Paths to Algorithmic Improvement:</strong> This diagnostic shows the trade-offs of first-principles isotropic Random-Walk Metropolis. In production risk environments, sampling efficiency can be improved by:</p>

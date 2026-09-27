@@ -3,31 +3,13 @@ title: "The Mechanics of Markov Chain Monte Carlo"
 subtitle: "Benchmarking First-Principles Parameter Exploration in Correlated Factor Spaces"
 author: "Patrick Lefler"
 date: "September 24, 2026"
-abstract: "Portfolio risk models must estimate many correlated parameters at once, 
-and deterministic grid integration becomes impractical as the number of 
-dimensions grows (\\(K^D\\)). This project builds a Random-Walk Metropolis 
-sampler from first principles in R, with no MCMC libraries, and applies 
-it to the expected returns of a 10-factor portfolio spanning equity, 
-credit, duration, and commodity exposures. The model is deliberately 
-chosen to have an exact answer: with multivariate normal returns and 
-covariance fixed at its sample estimate, the posterior is 
-\\(\\boldsymbol{\\mu} \\mid \\mathbf{R}, \\mathbf{\\Sigma} \\sim \\mathcal{N}(\\bar{\\mathbf{x}}, \\tfrac{1}{n}\\mathbf{\\Sigma})\\). This lets every MCMC output be checked against closed-form truth.
+abstract: |
+  Portfolio risk models must estimate many correlated parameters at once, and deterministic grid integration becomes impractical as the number of dimensions grows ($K^D$). This project builds a Random-Walk Metropolis sampler from first principles in R, with no MCMC libraries, and applies it to the expected returns of a 10-factor portfolio spanning equity, credit, duration, and commodity exposures. The model is deliberately chosen to have an exact answer: with multivariate normal returns and covariance fixed at its sample estimate, the posterior is $\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \tfrac{1}{n}\mathbf{\Sigma})$. This lets every MCMC output be checked against closed-form truth.
 
-The results show how a sampler can look healthy and still understate risk. 
-At a 28.9% acceptance rate, well within conventional targets, the chain 
-reproduces the exact posterior means of Value at Risk (1.05%) and Expected 
-Shortfall (1.33%). The diagnostics tell a different story. All ten factors 
-are at or above the split-\\(\\hat{R}\\) convergence threshold of 1.01 across 
-four chains (maximum 1.057). Effective Sample Size is only 16–65 out of 
-2,500 post-burn draws, far below the recommended 400. Most important for 
-risk reporting, the MCMC credible interval for VaR is about 17% narrower 
-than the exact interval, so the sampler understates parameter uncertainty.
+  The results show how a sampler can look healthy and still understate risk. At a 28.9% acceptance rate, well within conventional targets, the chain reproduces the exact posterior means of Value at Risk (1.05%) and Expected Shortfall (1.33%). The diagnostics tell a different story. All ten factors are at or above the split-$\hat{R}$ convergence threshold of 1.01 across four chains (maximum 1.057). Pooled across four chains (10,000 draws), bulk Effective Sample Size is only 65–316, and tail ESS for Tech Growth is 132, well below the recommended 400. Most important for risk reporting, the MCMC credible interval for VaR is about 17% narrower than the exact interval, so the sampler understates parameter uncertainty.
 
-The cause is a single isotropic proposal step applied to factors with very 
-different scales and strong correlations. The findings show why acceptance 
-rates alone are not sufficient evidence of convergence, and why production 
-risk engines need covariance-preconditioned or gradient-based samplers, 
-validated with multi-chain diagnostics and, where possible, exact benchmarks."
+  The cause is a single isotropic proposal step applied to factors with very different scales and strong correlations. The findings show why acceptance rates alone are not sufficient evidence of convergence, and why production risk engines need covariance-preconditioned or gradient-based samplers, validated with multi-chain diagnostics and, where possible, exact benchmarks.
+
 ---
 
 ```{r setup, include=FALSE}
@@ -57,6 +39,44 @@ hero_chain <- run_metropolis(
 )
 
 ```
+
+---
+
+::: {.callout-note icon = false}
+## Scope & Limitations
+This project is a methods demonstration and model-validation case study, not 
+a production risk model. Its results should be read with these constraints in mind:
+
+- **Synthetic data.** All results use a simulated 250-day fixture drawn from a 
+  known multivariate normal distribution. Real returns show regime shifts, 
+  volatility clustering, and structural breaks that this dataset does not.
+- **Covariance is fixed.** $\mathbf{\Sigma}$ is set to its sample estimate, so 
+  only uncertainty in the mean vector is modeled. Covariance uncertainty, 
+  usually the larger driver of VaR error, is excluded, and the reported 
+  credible intervals are therefore lower bounds on total parameter risk.
+- **Gaussian tails.** The normal likelihood cannot represent fat tails or 
+  skew. VaR and ES here are parametric Gaussian measures and will understate 
+  losses in stressed markets.
+- **The sampler has not converged.** All ten factors fail the 
+  split-$\hat{R} < 1.01$ test, bulk ESS is 65–316 across four chains, and the 
+  VaR credible interval is about 17% too narrow. The chain's tail estimates 
+  should not be used for decisions without a preconditioned or gradient-based 
+  sampler.
+- **Short run and burn-in.** The chains run 3,000 iterations with a 500-draw 
+  burn-in, which the trace plots show is insufficient for overdispersed starts.
+- **Deliberately simple setting.** The model is conjugate, so MCMC is not 
+  actually needed here; it is used so that results can be checked against an 
+  exact answer. Performance on non-conjugate models (for example, Student-t 
+  likelihoods or joint mean–covariance estimation) is untested.
+- **Narrow portfolio specification.** Results cover one equal-weighted 
+  portfolio at a 1-day horizon and a 95% confidence level. Other weights, 
+  horizons, or confidence levels are not assessed.
+- **Illustrative scaling figures.** The grid-versus-MCMC timings in the 
+  Dimensional Complexity table are illustrative estimates, not measured 
+  benchmarks.
+:::
+
+---
 
 ### Introduction
 Markov Chain Monte Carlo (MCMC) is a computational class of algorithms designed to sample from complex, high-dimensional probability distributions when analytical integration is intractable. In portfolio risk management, evaluating joint risk across multiple assets requires characterizing dependent parameters simultaneously—including factor means, volatilities, and cross-asset correlations. For non-standard priors or complex likelihoods, deterministic numerical grid integration scales exponentially with dimension (‭$K^D$‬), quickly exceeding practical computational limits.

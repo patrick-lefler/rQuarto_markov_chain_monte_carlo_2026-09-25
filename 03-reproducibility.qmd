@@ -294,7 +294,7 @@ tibble(
   cols_label(
     Asset_Class = "Risk Factor Asset",
     Total_Post_Burn_Draws = "Post-Burn Draws",
-    Effective_Sample_Size = "Effective Draws (ESS)",
+    Effective_Sample_Size = "ESS (Chain 1)",
     Pooled_Bulk_ESS = "Bulk ESS (4 chains)",
     Pooled_Tail_ESS = "Tail ESS (4 chains)",
     Sampling_Efficiency = "Efficiency Ratio",
@@ -326,23 +326,24 @@ ess_max   <- max(ess_tech, ess_treas, ess_large)
 mcse_share_tech <- sprintf("%.0f%%", 100 / sqrt(ess_tech))
 ```
 
-Pooled across all four chains (`r n_total` draws), bulk ESS for Tech 
+Pooled across all four chains `r format(n_total, big.mark=",")` draws), bulk ESS for Tech 
 Growth is `r ess_pooled_bulk[1]` and tail ESS is `r ess_pooled_tail[1]`, 
 still well below the recommended 400, consistent with the split-\\(\\hat{R}\\) 
-results above.
+results above. Only the Treasury tail ESS (640) clears the threshold
 
 **Model Validation Findings** <br/>
-A model validation review of the ESS diagnostics yields three key takeaways:
+A model validation review of the ESS diagnostics yields four key takeaways:
 
-1. **Sampling Efficiency Reflects Correlation Drag:** Out of 
-`r txt_n_draws` post-burn iterations, Tech Growth yields only 
-`r txt_ess_tech` effective independent draws, a sampling efficiency of 
-`r eff_tech`. Across the three audited factors, ESS ranges from 
-`r ess_min` to `r ess_max`. The acceptance rate of `r txt_acc_c1` falls 
-within the conventional range, which shows that a healthy acceptance 
-rate does not guarantee good mixing. The single, isotropic proposal 
-step is too small for high-variance factors such as Tech Growth, so 
-the chain crosses their posterior range slowly.
+1. **Sampling Efficiency Reflects Correlation Drag:** Out of 2,500 post-burn 
+iterations in Chain 1, Tech Growth yields only 16 effective independent draws, 
+a sampling efficiency of 0.6%. Across the three audited factors, single-chain 
+ESS ranges from 16 to 65; pooled across four chains (10,000 draws), bulk ESS 
+is `r min(ess_pooled_bulk)`–`r max(ess_pooled_bulk)`, still below the 
+recommended 400 for every factor. The acceptance rate of 28.9% falls within 
+the conventional range, which shows that a healthy acceptance rate does not 
+guarantee good mixing. The single, isotropic proposal step is too small for 
+high-variance factors such as Tech Growth, so the chain crosses their 
+posterior range slowly.
 
 2. **Independent Verification of the Estimator:** ESS values from 
 `compute_ess_robust()` (Geyer initial monotone sequence) were 

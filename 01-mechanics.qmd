@@ -1,6 +1,7 @@
 ---
 title: "The Metropolis Engine: Mechanics & Calibration"
-subtitle: "Deconstructing the Random Walk, Hastings Ratio, and the Step-Size Dilemma"
+subtitle: "Deconstructing the Random Walk, the Metropolis Acceptance Ratio, and the Step-Size Dilemma"
+
 ---
 
 ```{r setup, echo = TRUE, message = FALSE, warning = FALSE}
@@ -27,12 +28,12 @@ chain_tuned <- run_metropolis(target_toy, initial_theta = c(0, 0), iterations = 
 
 ```
 
-he Four Steps of Metropolis-Hastings
+The Four Steps of Metropolis-Hastings
 Rather than solving high-dimensional integrals analytically, the Metropolis-Hastings algorithm generates samples from an unnormalized target density via four iterative steps: <br/>
 1. **Propose a Candidate Move:** 
 Given the current state ‭$\theta^{(t)}$‬, sample candidate coordinates ‭$\theta^*$‬ from a symmetric proposal distribution:
 ‭$$\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)$$‬‭‬‭‬‭‬ ‭‬‭‬
-2. **Evaluate the Hastings Acceptance Ratio (‭$\alpha$‬):** Compare target density at the candidate position to the current state:
+2. **Evaluate the Metropolis Acceptance Ratio (‭$\alpha$‬):** Compare target density at the candidate position to the current state:
 ‭$$\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)$$‬‭‬‭‬‭‬ ‭‬
 In practice, this is evaluated in log-space to prevent numerical floating-point underflow:
 ‭$$\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)$$‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬
@@ -41,13 +42,13 @@ Draw a uniform scalar ‭$u \sim \text{Uniform}(0, 1)$‬‭‬‭‬‭‬‭�
 ‭$$\theta^{(t+1)} = \theta^*$$‬‭‬
 Otherwise, the candidate is rejected, and the chain remains in place:
 ‭$$\theta^{(t+1)} = \theta^{(t)}$$‬‭‬
-> *Note: While occasionally accepting lower-density moves enables traversal across non-convex surfaces, standard Random-Walk Metropolis remains vulnerable to getting trapped between separated modes on complex, multimodal target surfaces.* <br/><br/>
+*Note: While occasionally accepting lower-density moves enables traversal across non-convex surfaces, standard Random-Walk Metropolis remains vulnerable to getting trapped between separated modes on complex, multimodal target surfaces.* <br/><br/>
 4. **Iterate:**
 Repeating this transition rule generates an empirical chain whose visited states converge asymptotically to the target posterior distribution ‭$p(\theta \mid \mathcal{D})$‬‭‬‭‬‭‬‭‬.
 
 ---
 
-### The Complete Engine in Pure R
+### The Complete Engine in R
 
 Below is the complete sampling engine implemented from first principles in base R:
 

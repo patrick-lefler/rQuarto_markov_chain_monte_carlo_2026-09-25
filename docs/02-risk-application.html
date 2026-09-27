@@ -1880,7 +1880,7 @@ Table&nbsp;2
 <section id="what-the-benchmark-shows" class="level3">
 <h3 class="anchored" data-anchor-id="what-the-benchmark-shows">What the Benchmark Shows</h3>
 <p>The MCMC point estimates match the exact posterior: portfolio VaR and ES means agree to the second decimal place. The <strong>credible intervals</strong> are narrower than they should be. The MCMC VaR interval is about 83% of the exact width, so the sampler understates parameter uncertainty.</p>
-<p>The per-factor table shows where this comes from. Factors with the slowest mixing (lowest ESS on the Audit &amp; Diagnostics page) show the largest SD shortfall and the largest mean error. With only 19–122 effective draws, the chain has not explored the posterior tails fully.</p>
+<p>Nine of ten factors under-disperse (SD ratio 0.82–0.97). The pattern is broad-based rather than concentrated in the lowest-ESS factors, consistent with chains that have explored only part of the posterior.</p>
 <p><strong>Implication for risk reporting:</strong> a poorly mixed sampler can report the right central estimate while producing credible intervals that are too narrow, which understates parameter risk. Without a closed-form benchmark or proper diagnostics, this failure would go unnoticed.</p>
 <p><strong>Parameter Distributions vs.&nbsp;Generative Ground Truth</strong></p>
 <p>Because the fixture was simulated from known parameters, we can compare the sampled MCMC distributions against both the generative population values and the analytical sample estimates.</p>
@@ -1923,7 +1923,7 @@ Table&nbsp;2
 <p><strong>Understanding the Marginal Density Plots</strong></p>
 <p><strong>Tech Growth:</strong> The posterior centers on the sample mean, approximately 0.34% daily, with a posterior standard deviation of about 0.10%. The 90% credible interval runs from +0.17% to +0.47%. The true value used to generate the data, +0.044% daily (+11.0% annualized), lies about 2.8 posterior standard deviations below the center.</p>
 <p>This is not a sampler error. By chance, this 250-day sample shows a Tech Growth drift of roughly 82% annualized. The posterior correctly reports what the data support; the data simply don’t support the true value.</p>
-<p><strong>US Treasuries (10Y):</strong> The posterior centers near -0.02% daily, with a standard deviation of about +0.03% and a 90% credible interval of -0.07% to +0.03%. The true value (+0.014% daily) lies about 1.1 standard deviations from the center.</p>
+<p><strong>US Treasuries (10Y):</strong> The posterior centers near -0.02% daily, with a standard deviation of about 0.03% and a 90% credible interval of -0.07% to +0.03%. The true value (+0.014% daily) lies about 1.1 standard deviations from the center.</p>
 <p>Narrowing Tech Growth’s uncertainty to 0.01% daily would take about 25,451 trading days of data.</p>
 <div class="callout callout-style-default callout-important no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
