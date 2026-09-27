@@ -22,16 +22,21 @@ Repository Structure
 
 ```
 mcmc-in-action/
-├── _quarto.yml               # Quarto configuration (Sandstone theme, navbar)
-├── index.qmd                 # Intuition & 2D random walk visualization
-├── 01-mechanics.qmd          # Metropolis-Hastings engine & tuning diagnostics
-├── 02-risk-application.qmd   # 10-factor portfolio risk model & tail estimates
-├── 03-reproducibility.qmd    # Convergence diagnostics & computational manifest
+├── _quarto.yml                  # Quarto configuration (Sandstone theme, navbar)
+├── index.qmd                    # Intuition & 2D random walk visualization
+├── 01-mechanics.qmd             # Metropolis-Hastings engine & tuning diagnostics
+├── 02-risk-application.qmd      # 10-factor portfolio risk model & tail estimates
+├── 03-reproducibility.qmd      # Convergence diagnostics & computational manifest
 ├── R/
-│   ├── generate_data.R       # Generates synthetic 10-asset returns fixture
-│   ├── metropolis_sampler.R  # Pure R Metropolis-Hastings sampler
-│   ├── risk_functions.R      # Joint log-posterior & tail risk evaluation
-│   └── plots.R               # ggplot2 themes and diagnostic plots
+├── ├── disnostics.R             # Diagnostics file
+│   ├── generate_data.R          # Generates synthetic 10-asset returns fixture
+│   ├── metropolis_sampler.R     # Pure R Metropolis-Hastings sampler
+|   |── plots.R                  # ggplot2 themes and diagnostic plots
+|   |── remediate.R              # R Remediation script 
+│   ├── risk_functions.R         # Joint log-posterior & tail risk evaluation
+|   |── verify_diagnostics.R     # R diagnostics verification script 
+│   ├── verify_risk_functions.R  # R risk function verification script
+│   └── verify._sampler.R        # R verification scripts
 └── data/
     └── synthetic_returns.csv # Frozen 250-day x 10-factor returns matrix
 ```
