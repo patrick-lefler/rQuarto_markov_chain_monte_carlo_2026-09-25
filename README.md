@@ -36,7 +36,7 @@ mcmc-in-action/
 │   ├── risk_functions.R         # Joint log-posterior & tail risk evaluation
 |   |── verify_diagnostics.R     # R diagnostics verification script 
 │   ├── verify_risk_functions.R  # R risk function verification script
-│   └── verify._sampler.R        # R verification scripts
+│   └── verify_sampler.R         # R verification scripts
 └── data/
     └── synthetic_returns.csv # Frozen 250-day x 10-factor returns matrix
 ```
