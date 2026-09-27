@@ -198,7 +198,6 @@ window.Quarto = {
   <li><a href="#sampling-the-10-factor-joint-posterior" id="toc-sampling-the-10-factor-joint-posterior" class="nav-link" data-scroll-target="#sampling-the-10-factor-joint-posterior">Sampling the 10-Factor Joint Posterior</a></li>
   <li><a href="#benchmarking-mcmc-against-the-exact-posterior" id="toc-benchmarking-mcmc-against-the-exact-posterior" class="nav-link" data-scroll-target="#benchmarking-mcmc-against-the-exact-posterior">Benchmarking MCMC Against the Exact Posterior</a></li>
   <li><a href="#what-the-benchmark-shows" id="toc-what-the-benchmark-shows" class="nav-link" data-scroll-target="#what-the-benchmark-shows">What the Benchmark Shows</a></li>
-  <li><a href="#understanding-the-marginal-density-plots" id="toc-understanding-the-marginal-density-plots" class="nav-link" data-scroll-target="#understanding-the-marginal-density-plots">Understanding the Marginal Density Plots</a></li>
   </ul>
 </nav>
     </div>
@@ -1922,10 +1921,7 @@ Table&nbsp;2
 </div>
 </div>
 <p><strong>Understanding the Marginal Density Plots</strong></p>
-</section>
-<section id="understanding-the-marginal-density-plots" class="level3">
-<h3 class="anchored" data-anchor-id="understanding-the-marginal-density-plots">Understanding the Marginal Density Plots</h3>
-<p><strong>Tech Growth:</strong> The posterior centers on the sample mean, approximately +0.34% daily, with a posterior standard deviation of about +0.10%. The 90% credible interval runs from +0.17% to +0.47%. The true value used to generate the data, +0.044% daily (+11.0% annualized), lies about 2.8 posterior standard deviations below the center.</p>
+<p><strong>Tech Growth:</strong> The posterior centers on the sample mean, approximately 0.34% daily, with a posterior standard deviation of about 0.10%. The 90% credible interval runs from +0.17% to +0.47%. The true value used to generate the data, +0.044% daily (+11.0% annualized), lies about 2.8 posterior standard deviations below the center.</p>
 <p>This is not a sampler error. By chance, this 250-day sample shows a Tech Growth drift of roughly 82% annualized. The posterior correctly reports what the data support; the data simply don’t support the true value.</p>
 <p><strong>US Treasuries (10Y):</strong> The posterior centers near -0.02% daily, with a standard deviation of about +0.03% and a 90% credible interval of -0.07% to +0.03%. The true value (+0.014% daily) lies about 1.1 standard deviations from the center.</p>
 <p>Narrowing Tech Growth’s uncertainty to 0.01% daily would take about 25,451 trading days of data.</p>
@@ -1939,7 +1935,7 @@ Table&nbsp;2
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>MCMC recovers the <strong>posterior</strong>, not the <strong>truth</strong>. With 250 daily observations, mean returns are poorly identified: Tech Growth’s posterior standard deviation (≈0.10% daily) is more than twice its true mean. Narrowing that uncertainty to about 0.01% daily would take roughly 27,000 trading days of data. For risk managers, a year of history can’t reliably tell a high-drift asset from a low-drift one. That estimation uncertainty is exactly what the VaR and ES credible intervals are meant to capture.</p>
+<p>MCMC recovers the <strong>posterior</strong>, not the <strong>truth</strong>. With 250 daily observations, mean returns are poorly identified: Tech Growth’s posterior standard deviation (≈0.10% daily) is more than twice its true mean. Narrowing that uncertainty to about 0.01% daily would take roughly  25,451 trading days of data. For risk managers, a year of history can’t reliably tell a high-drift asset from a low-drift one. That estimation uncertainty is exactly what the VaR and ES credible intervals are meant to capture.</p>
 </div>
 </div>
 

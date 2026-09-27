@@ -363,7 +363,7 @@ window.Quarto = {
 </section>
 <section id="multi-chain-mixing-verification" class="level3">
 <h3 class="anchored" data-anchor-id="multi-chain-mixing-verification">Multi-Chain Mixing Verification</h3>
-<p>To evaluate convergence, two independent chains are tracked from distinct initialization vectors (‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}\)</span>‬‭‬ vs.&nbsp;‭<span class="math inline">\(\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}\)</span>‬‭‬‭‬).</p>
+<p>To evaluate convergence, four independent chains are run: one from \(\boldsymbol{\theta}^{(0)} = \mathbf{0}\) and three from overdispersed starting points at \(\pm 3\) posterior standard deviations from the posterior center (all high, all low, and mixed).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -383,7 +383,7 @@ window.Quarto = {
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_percent</span>(<span class="at">accuracy =</span> <span class="fl">0.01</span>)) <span class="sc">+</span></span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Multi-Chain Stationarity Diagnostic: Tech Growth Exposure"</span>,</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Both chains navigate into the stationary posterior distribution"</span>,</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Four chains from overdispersed starts; Chain 3 has not reached the posterior band by the end of burn-in"</span>,</span>
 <span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Iteration Step"</span>,</span>
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Daily Expected Return"</span>,</span>
 <span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Sampler Execution"</span></span>
@@ -393,8 +393,8 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="03-reproducibility_files/figure-html/multi-chain-trace-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure 1: Two independent MCMC chains tracking Tech Growth expected returns"><img src="03-reproducibility_files/figure-html/multi-chain-trace-1.png" class="img-fluid figure-img" width="768" alt="Figure 1: Two independent MCMC chains tracking Tech Growth expected returns"></a></p>
-<figcaption>Figure 1: Two independent MCMC chains tracking Tech Growth expected returns</figcaption>
+<p><a href="03-reproducibility_files/figure-html/multi-chain-trace-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure 1: Four chains with ±3 SD starts"><img src="03-reproducibility_files/figure-html/multi-chain-trace-1.png" class="img-fluid figure-img" width="768" alt="Figure 1: Four chains with ±3 SD starts"></a></p>
+<figcaption>Figure 1: Four chains with ±3 SD starts</figcaption>
 </figure>
 </div>
 </div>
@@ -863,11 +863,11 @@ Table&nbsp;1
 <td colspan="3" class="gt_heading gt_title gt_font_normal"><strong>Split-R̂ Convergence Audit (4 Chains)</strong></td>
 </tr>
 <tr class="gt_heading even">
-<td colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Threshold: R̂ &lt; 1.01 (Vehtari et al., 2021)</td>
+<td colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Threshold: split-R̂ &lt; 1.01 (Vehtari et al., 2021)</td>
 </tr>
 <tr class="gt_col_headings header">
 <th id="Factor" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Factor</th>
-<th id="Split_Rhat" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Split_Rhat</th>
+<th id="Split_Rhat" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Split-R̂</th>
 <th id="Status" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Status</th>
 </tr>
 </thead>
@@ -932,8 +932,9 @@ Table&nbsp;1
 </div>
 </div>
 <p><strong>Diagnostic Review: Multi-Chain Trace and Split-\(\hat{R}\)</strong></p>
-<p>Four chains were run: one from \(\mathbf{0}\) and three from starting points \(\pm 3\) posterior standard deviations from the posterior center (all high, all low, and mixed). 10 of 10 factors exceed the \(\hat{R} &lt; 1.01\) threshold, and the maximum split-\(\hat{R}\) is 1.057.</p>
-<p>Chains started far apart have not fully mixed within 3,000 iterations, which is consistent with the low ESS reported below.”</p>
+<p>Four chains were run: one from \(\mathbf{0}\) and three from starting points \(\pm 3\) posterior standard deviations from the posterior center (all high, all low, and mixed). All 10 factors fail the \(\hat{R} &lt; 1.01\) threshold, with a maximum split-\(\hat{R}\) of 1.057 (Tech Growth). US Treasuries sits exactly at the threshold.</p>
+<p>The trace also shows that the 500-iteration burn-in is insufficient: Chain 3, started at \(-3\) posterior SDs, does not reach the posterior band until roughly iteration 700.</p>
+<p>Chains started far apart have not fully mixed within 3,000 iterations, which is consistent with the low ESS reported below.</p>
 <hr>
 </section>
 <section id="autocorrelation-decay-analysis" class="level3">
@@ -996,52 +997,71 @@ Table&nbsp;1
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Asset_Class =</span> <span class="fu">c</span>(<span class="st">"Equity Beta (Tech Growth)"</span>, <span class="st">"Duration Hedge (10Y Treasuries)"</span>, <span class="st">"Core Market (US Large Cap)"</span>),</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Total_Post_Burn_Draws =</span> <span class="fu">rep</span>(<span class="fu">nrow</span>(draws1_clean), <span class="dv">3</span>),</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Effective_Sample_Size =</span> <span class="fu">c</span>(ess_tech, ess_treas, ess_large),</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Sampling_Efficiency =</span> <span class="fu">c</span>(ess_tech, ess_treas, ess_large) <span class="sc">/</span> <span class="fu">nrow</span>(draws1_clean),</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">Autocorrelation_Lag10 =</span> <span class="fu">c</span>(</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>Tech_Growth, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>],</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>US_Treas_10Y, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>],</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>US_LargeCap, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>]</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**MCMC Chain Efficiency &amp; Effective Sample Size Audit**"</span>),</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Robust Geyer initial-sequence evaluation of chain correlation and sampling capacity"</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Asset_Class =</span> <span class="st">"Risk Factor Asset"</span>,</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total_Post_Burn_Draws =</span> <span class="st">"Post-Burn Draws"</span>,</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">Effective_Sample_Size =</span> <span class="st">"Effective Draws (ESS)"</span>,</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sampling_Efficiency =</span> <span class="st">"Efficiency Ratio"</span>,</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">Autocorrelation_Lag10 =</span> <span class="st">"Lag-10 Autocorr"</span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_integer</span>(<span class="at">columns =</span> <span class="fu">c</span>(Total_Post_Burn_Draws, Effective_Sample_Size)) <span class="sc">%&gt;%</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_percent</span>(<span class="at">columns =</span> Sampling_Efficiency, <span class="at">decimals =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">columns =</span> Autocorrelation_Lag10, <span class="at">decimals =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_options</span>(<span class="at">table.font.size =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine one factor's draws from all 4 chains into a 2,500 x 4 matrix</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>chain_matrix <span class="ot">&lt;-</span> <span class="cf">function</span>(factor) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sapply</span>(draws_clean, <span class="cf">function</span>(dc) dc[[factor]])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>factors_audit <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Tech_Growth"</span>, <span class="st">"US_Treas_10Y"</span>, <span class="st">"US_LargeCap"</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>ess_pooled_bulk <span class="ot">&lt;-</span> <span class="fu">sapply</span>(factors_audit, <span class="cf">function</span>(f)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(posterior<span class="sc">::</span><span class="fu">ess_bulk</span>(<span class="fu">chain_matrix</span>(f))))</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>ess_pooled_tail <span class="ot">&lt;-</span> <span class="fu">sapply</span>(factors_audit, <span class="cf">function</span>(f)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(posterior<span class="sc">::</span><span class="fu">ess_tail</span>(<span class="fu">chain_matrix</span>(f))))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>n_total <span class="ot">&lt;-</span> <span class="fu">nrow</span>(draws1_clean) <span class="sc">*</span> <span class="fu">length</span>(draws_clean)   <span class="co"># 10,000</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">Asset_Class =</span> <span class="fu">c</span>(<span class="st">"Equity Beta (Tech Growth)"</span>, <span class="st">"Duration Hedge (10Y Treasuries)"</span>, <span class="st">"Core Market (US Large Cap)"</span>),</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">Total_Post_Burn_Draws =</span> <span class="fu">rep</span>(<span class="fu">nrow</span>(draws1_clean), <span class="dv">3</span>),</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">Effective_Sample_Size =</span> <span class="fu">c</span>(ess_tech, ess_treas, ess_large),</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">Pooled_Bulk_ESS =</span> ess_pooled_bulk,</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">Pooled_Tail_ESS =</span> ess_pooled_tail,</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">Sampling_Efficiency =</span> <span class="fu">c</span>(ess_tech, ess_treas, ess_large) <span class="sc">/</span> <span class="fu">nrow</span>(draws1_clean),</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">Autocorrelation_Lag10 =</span> <span class="fu">c</span>(</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>Tech_Growth, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>],</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>US_Treas_10Y, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>],</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">acf</span>(draws1_clean<span class="sc">$</span>US_LargeCap, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">11</span>]</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**MCMC Chain Efficiency &amp; Effective Sample Size Audit**"</span>),</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Robust Geyer initial-sequence evaluation of chain correlation and sampling capacity"</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">Asset_Class =</span> <span class="st">"Risk Factor Asset"</span>,</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total_Post_Burn_Draws =</span> <span class="st">"Post-Burn Draws"</span>,</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">Effective_Sample_Size =</span> <span class="st">"Effective Draws (ESS)"</span>,</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">Pooled_Bulk_ESS =</span> <span class="st">"Bulk ESS (4 chains)"</span>,</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">Pooled_Tail_ESS =</span> <span class="st">"Tail ESS (4 chains)"</span>,</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sampling_Efficiency =</span> <span class="st">"Efficiency Ratio"</span>,</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">Autocorrelation_Lag10 =</span> <span class="st">"Lag-10 Autocorr"</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_integer</span>(<span class="at">columns =</span> <span class="fu">c</span>(Total_Post_Burn_Draws, Effective_Sample_Size)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_percent</span>(<span class="at">columns =</span> Sampling_Efficiency, <span class="at">decimals =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">columns =</span> Autocorrelation_Lag10, <span class="at">decimals =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_options</span>(<span class="at">table.font.size =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
-<div id="cvguyfelhb" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#cvguyfelhb table {
+<div id="lnwvnvkoes" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#lnwvnvkoes table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#cvguyfelhb thead, #cvguyfelhb tbody, #cvguyfelhb tfoot, #cvguyfelhb tr, #cvguyfelhb td, #cvguyfelhb th {
+#lnwvnvkoes thead, #lnwvnvkoes tbody, #lnwvnvkoes tfoot, #lnwvnvkoes tr, #lnwvnvkoes td, #lnwvnvkoes th {
   border-style: none;
 }
 
-#cvguyfelhb p {
+#lnwvnvkoes p {
   margin: 0;
   padding: 0;
 }
 
-#cvguyfelhb .gt_table {
+#lnwvnvkoes .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -1067,12 +1087,12 @@ Table&nbsp;1
   border-left-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_caption {
+#lnwvnvkoes .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#cvguyfelhb .gt_title {
+#lnwvnvkoes .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1084,7 +1104,7 @@ Table&nbsp;1
   border-bottom-width: 0;
 }
 
-#cvguyfelhb .gt_subtitle {
+#lnwvnvkoes .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1096,7 +1116,7 @@ Table&nbsp;1
   border-top-width: 0;
 }
 
-#cvguyfelhb .gt_heading {
+#lnwvnvkoes .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1108,13 +1128,13 @@ Table&nbsp;1
   border-right-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_bottom_border {
+#lnwvnvkoes .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_col_headings {
+#lnwvnvkoes .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1129,7 +1149,7 @@ Table&nbsp;1
   border-right-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_col_heading {
+#lnwvnvkoes .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1149,7 +1169,7 @@ Table&nbsp;1
   overflow-x: hidden;
 }
 
-#cvguyfelhb .gt_column_spanner_outer {
+#lnwvnvkoes .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1161,15 +1181,15 @@ Table&nbsp;1
   padding-right: 4px;
 }
 
-#cvguyfelhb .gt_column_spanner_outer:first-child {
+#lnwvnvkoes .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#cvguyfelhb .gt_column_spanner_outer:last-child {
+#lnwvnvkoes .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#cvguyfelhb .gt_column_spanner {
+#lnwvnvkoes .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1181,11 +1201,11 @@ Table&nbsp;1
   width: 100%;
 }
 
-#cvguyfelhb .gt_spanner_row {
+#lnwvnvkoes .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#cvguyfelhb .gt_group_heading {
+#lnwvnvkoes .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1211,7 +1231,7 @@ Table&nbsp;1
   text-align: left;
 }
 
-#cvguyfelhb .gt_empty_group_heading {
+#lnwvnvkoes .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1226,15 +1246,15 @@ Table&nbsp;1
   vertical-align: middle;
 }
 
-#cvguyfelhb .gt_from_md > :first-child {
+#lnwvnvkoes .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#cvguyfelhb .gt_from_md > :last-child {
+#lnwvnvkoes .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#cvguyfelhb .gt_row {
+#lnwvnvkoes .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1253,7 +1273,7 @@ Table&nbsp;1
   overflow-x: hidden;
 }
 
-#cvguyfelhb .gt_stub {
+#lnwvnvkoes .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1266,7 +1286,7 @@ Table&nbsp;1
   padding-right: 5px;
 }
 
-#cvguyfelhb .gt_stub_row_group {
+#lnwvnvkoes .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1280,15 +1300,15 @@ Table&nbsp;1
   vertical-align: top;
 }
 
-#cvguyfelhb .gt_row_group_first td {
+#lnwvnvkoes .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#cvguyfelhb .gt_row_group_first th {
+#lnwvnvkoes .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#cvguyfelhb .gt_summary_row {
+#lnwvnvkoes .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1298,16 +1318,16 @@ Table&nbsp;1
   padding-right: 5px;
 }
 
-#cvguyfelhb .gt_first_summary_row {
+#lnwvnvkoes .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_first_summary_row.thick {
+#lnwvnvkoes .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#cvguyfelhb .gt_last_summary_row {
+#lnwvnvkoes .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1317,7 +1337,7 @@ Table&nbsp;1
   border-bottom-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_grand_summary_row {
+#lnwvnvkoes .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1327,7 +1347,7 @@ Table&nbsp;1
   padding-right: 5px;
 }
 
-#cvguyfelhb .gt_first_grand_summary_row {
+#lnwvnvkoes .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1337,7 +1357,7 @@ Table&nbsp;1
   border-top-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_last_grand_summary_row_top {
+#lnwvnvkoes .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1347,11 +1367,11 @@ Table&nbsp;1
   border-bottom-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_striped {
+#lnwvnvkoes .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#cvguyfelhb .gt_table_body {
+#lnwvnvkoes .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1360,7 +1380,7 @@ Table&nbsp;1
   border-bottom-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_footnotes {
+#lnwvnvkoes .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1374,7 +1394,7 @@ Table&nbsp;1
   border-right-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_footnote {
+#lnwvnvkoes .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -1383,7 +1403,7 @@ Table&nbsp;1
   padding-right: 5px;
 }
 
-#cvguyfelhb .gt_sourcenotes {
+#lnwvnvkoes .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1397,7 +1417,7 @@ Table&nbsp;1
   border-right-color: #D3D3D3;
 }
 
-#cvguyfelhb .gt_sourcenote {
+#lnwvnvkoes .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1405,72 +1425,72 @@ Table&nbsp;1
   padding-right: 5px;
 }
 
-#cvguyfelhb .gt_left {
+#lnwvnvkoes .gt_left {
   text-align: left;
 }
 
-#cvguyfelhb .gt_center {
+#lnwvnvkoes .gt_center {
   text-align: center;
 }
 
-#cvguyfelhb .gt_right {
+#lnwvnvkoes .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#cvguyfelhb .gt_font_normal {
+#lnwvnvkoes .gt_font_normal {
   font-weight: normal;
 }
 
-#cvguyfelhb .gt_font_bold {
+#lnwvnvkoes .gt_font_bold {
   font-weight: bold;
 }
 
-#cvguyfelhb .gt_font_italic {
+#lnwvnvkoes .gt_font_italic {
   font-style: italic;
 }
 
-#cvguyfelhb .gt_super {
+#lnwvnvkoes .gt_super {
   font-size: 65%;
 }
 
-#cvguyfelhb .gt_footnote_marks {
+#lnwvnvkoes .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#cvguyfelhb .gt_asterisk {
+#lnwvnvkoes .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#cvguyfelhb .gt_indent_1 {
+#lnwvnvkoes .gt_indent_1 {
   text-indent: 5px;
 }
 
-#cvguyfelhb .gt_indent_2 {
+#lnwvnvkoes .gt_indent_2 {
   text-indent: 10px;
 }
 
-#cvguyfelhb .gt_indent_3 {
+#lnwvnvkoes .gt_indent_3 {
   text-indent: 15px;
 }
 
-#cvguyfelhb .gt_indent_4 {
+#lnwvnvkoes .gt_indent_4 {
   text-indent: 20px;
 }
 
-#cvguyfelhb .gt_indent_5 {
+#lnwvnvkoes .gt_indent_5 {
   text-indent: 25px;
 }
 
-#cvguyfelhb .katex-display {
+#lnwvnvkoes .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#cvguyfelhb div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#lnwvnvkoes div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1478,15 +1498,17 @@ Table&nbsp;1
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
 <thead>
 <tr class="gt_heading header">
-<td colspan="5" class="gt_heading gt_title gt_font_normal"><strong>MCMC Chain Efficiency &amp; Effective Sample Size Audit</strong></td>
+<td colspan="7" class="gt_heading gt_title gt_font_normal"><strong>MCMC Chain Efficiency &amp; Effective Sample Size Audit</strong></td>
 </tr>
 <tr class="gt_heading even">
-<td colspan="5" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Robust Geyer initial-sequence evaluation of chain correlation and sampling capacity</td>
+<td colspan="7" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Robust Geyer initial-sequence evaluation of chain correlation and sampling capacity</td>
 </tr>
 <tr class="gt_col_headings header">
 <th id="Asset_Class" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Risk Factor Asset</th>
 <th id="Total_Post_Burn_Draws" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Post-Burn Draws</th>
 <th id="Effective_Sample_Size" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Effective Draws (ESS)</th>
+<th id="Pooled_Bulk_ESS" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Bulk ESS (4 chains)</th>
+<th id="Pooled_Tail_ESS" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Tail ESS (4 chains)</th>
 <th id="Sampling_Efficiency" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Efficiency Ratio</th>
 <th id="Autocorrelation_Lag10" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Lag-10 Autocorr</th>
 </tr>
@@ -1496,6 +1518,8 @@ Table&nbsp;1
 <td class="gt_row gt_left" headers="Asset_Class">Equity Beta (Tech Growth)</td>
 <td class="gt_row gt_right" headers="Total_Post_Burn_Draws">2,500</td>
 <td class="gt_row gt_right" headers="Effective_Sample_Size">16</td>
+<td class="gt_row gt_right" headers="Pooled_Bulk_ESS">65</td>
+<td class="gt_row gt_right" headers="Pooled_Tail_ESS">132</td>
 <td class="gt_row gt_right" headers="Sampling_Efficiency">0.6%</td>
 <td class="gt_row gt_right" headers="Autocorrelation_Lag10">0.874</td>
 </tr>
@@ -1503,6 +1527,8 @@ Table&nbsp;1
 <td class="gt_row gt_left" headers="Asset_Class">Duration Hedge (10Y Treasuries)</td>
 <td class="gt_row gt_right" headers="Total_Post_Burn_Draws">2,500</td>
 <td class="gt_row gt_right" headers="Effective_Sample_Size">65</td>
+<td class="gt_row gt_right" headers="Pooled_Bulk_ESS">316</td>
+<td class="gt_row gt_right" headers="Pooled_Tail_ESS">640</td>
 <td class="gt_row gt_right" headers="Sampling_Efficiency">2.6%</td>
 <td class="gt_row gt_right" headers="Autocorrelation_Lag10">0.441</td>
 </tr>
@@ -1510,6 +1536,8 @@ Table&nbsp;1
 <td class="gt_row gt_left" headers="Asset_Class">Core Market (US Large Cap)</td>
 <td class="gt_row gt_right" headers="Total_Post_Burn_Draws">2,500</td>
 <td class="gt_row gt_right" headers="Effective_Sample_Size">22</td>
+<td class="gt_row gt_right" headers="Pooled_Bulk_ESS">93</td>
+<td class="gt_row gt_right" headers="Pooled_Tail_ESS">244</td>
 <td class="gt_row gt_right" headers="Sampling_Efficiency">0.9%</td>
 <td class="gt_row gt_right" headers="Autocorrelation_Lag10">0.722</td>
 </tr>
@@ -1519,8 +1547,8 @@ Table&nbsp;1
 </div>
 </div>
 </div>
-<p><strong>Model Validation Findings</strong></p>
-<p>A model validation review of the ESS diagnostics yields three key takeaways:</p>
+<p>Pooled across all four chains (10000 draws), bulk ESS for Tech Growth is 65 and tail ESS is 132, still well below the recommended 400, consistent with the split-\(\hat{R}\) results above.</p>
+<p><strong>Model Validation Findings</strong> <br> A model validation review of the ESS diagnostics yields three key takeaways:</p>
 <ol type="1">
 <li><p><strong>Sampling Efficiency Reflects Correlation Drag:</strong> Out of 2,500 post-burn iterations, Tech Growth yields only 16 effective independent draws, a sampling efficiency of 0.6%. Across the three audited factors, ESS ranges from 16 to 65. The acceptance rate of 28.9% falls within the conventional range, which shows that a healthy acceptance rate does not guarantee good mixing. The single, isotropic proposal step is too small for high-variance factors such as Tech Growth, so the chain crosses their posterior range slowly.</p></li>
 <li><p><strong>Independent Verification of the Estimator:</strong> ESS values from <code>compute_ess_robust()</code> (Geyer initial monotone sequence) were cross-checked against <code>posterior::ess_basic()</code>, which returned 14.5, 55.2, and 20.5 for Tech Growth, Treasuries, and US Large Cap. The two estimators agree closely. The reference package reads slightly lower because it uses split chains and a more conservative truncation rule.</p></li>
