@@ -839,9 +839,11 @@ window.Quarto = {
 <section id="project-structure-roadmap" class="level3">
 <h3 class="anchored" data-anchor-id="project-structure-roadmap">Project Structure &amp; Roadmap</h3>
 <p>This project demonstrates the implementation, diagnostic auditing, and tail-risk application of first-principles MCMC:</p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/01-mechanics.html">The Metropolis Engine</a>: The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.</p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/02-risk-application.html">Portfolio Risk Model</a>: Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES) against closed-form benchmarks.</p>
-<p><a href="https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/03-reproducibility.html">Audit &amp; Diagnostics</a>: Verification of chain mixing, autocorrelation decay, split-‭<span class="math inline">\(\hat{R}\)</span>‬, and robust Effective Sample Size (ESS) audits.</p>
+<ul>
+<li><a href="./01-mechanics.html">The Metropolis Engine</a>: The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.</li>
+<li><a href="./02-risk-application.html">Portfolio Risk Model</a>: Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES), benchmarked against the exact closed-form posterior.</li>
+<li><a href="./03-reproducibility.html">Audit &amp; Diagnostics</a>: Four-chain convergence checks with split-<span class="math inline">\(\hat{R}\)</span>, autocorrelation decay, and Effective Sample Size (ESS) audits cross-checked against the <code>posterior</code> package.</li>
+</ul>
 
 
 </section>
