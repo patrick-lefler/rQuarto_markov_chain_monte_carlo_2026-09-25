@@ -8,6 +8,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(dplyr)
 library(ggplot2)
 library(gt)
+library(posterior)
 library(reactable)
 library(scales)
 library(tidyverse)
@@ -15,6 +16,7 @@ library(tidyverse)
 source("R/metropolis_sampler.R")
 source("R/risk_functions.R")
 source("R/plots.R")
+source("R/diagnostics.R")
 
 # 1. Ingest fixture and run two independent chains to test mixing
 model_fixture <- build_risk_target("data/synthetic_returns.csv")
@@ -35,19 +37,37 @@ chain1 <- run_metropolis(
   seed = 42
 )
 
-chain2 <- run_metropolis(
-  target_log_posterior = model_fixture$target_fn,
-  initial_theta = init_theta2,
-  iterations = 3000,
-  proposal_sd = 0.00032,
-  seed = 99
+n_obs       <- nrow(model_fixture$returns_mat)
+post_center <- colMeans(model_fixture$returns_mat)
+post_sd     <- sqrt(diag(model_fixture$cov_emp) / n_obs)
+
+set.seed(2026)
+signs <- sample(c(-1, 1), d, replace = TRUE)
+starts <- list(
+  post_center + 3 * post_sd,          # all high
+  post_center - 3 * post_sd,          # all low
+  post_center + 3 * post_sd * signs   # mixed
 )
+seeds <- c(99, 123, 456)
+
+extra_chains <- lapply(seq_along(starts), function(i) {
+  th <- starts[[i]]; names(th) <- asset_names
+  run_metropolis(model_fixture$target_fn, th,
+                 iterations = 3000, proposal_sd = 0.00032, seed = seeds[i])
+})
+
+all_chains <- c(list(chain1), extra_chains)
+chain2 <- extra_chains[[1]]   # keeps txt_acc_c2 working
+
+# Burn-in discard (first 500 draws)
+draws_clean  <- lapply(all_chains, function(ch) ch$draws %>% slice_tail(n = 2500))
+draws1_clean <- draws_clean[[1]]
 
 # Burn-in discard (first 500 draws)
 draws1_clean <- chain1$draws %>% slice_tail(n = 2500)
-draws2_clean <- chain2$draws %>% slice_tail(n = 2500)
+## draws2_clean <- chain2$draws %>% slice_tail(n = 2500)
 
-# 2. Compute Robust Effective Sample Size (ESS) using Geyer's initial sequence estimator
+# 2. Effective Sample Size (Geyer initial monotone sequence; see R/diagnostics.R)
 ess_tech  <- compute_ess_robust(draws1_clean$Tech_Growth)
 ess_treas <- compute_ess_robust(draws1_clean$US_Treas_10Y)
 ess_large <- compute_ess_robust(draws1_clean$US_LargeCap)
@@ -57,6 +77,8 @@ txt_acc_c1   <- sprintf("%.1f%%", chain1$acceptance_rate * 100)
 txt_acc_c2   <- sprintf("%.1f%%", chain2$acceptance_rate * 100)
 txt_ess_tech <- comma(ess_tech)
 txt_n_draws  <- comma(nrow(draws1_clean))
+
+## posterior::ess_basic(draws1_clean$Tech_Growth)   # or coda::effectiveSize()
 
 ```
 
@@ -113,16 +135,16 @@ To evaluate convergence, two independent chains are tracked from distinct initia
 #| fig-width: 10
 #| fig-height: 8
 
-trace_df <- bind_rows(
-  chain1$draws %>% select(iteration, Tech_Growth) %>% mutate(Chain = "Chain 1 (Seed 42)"),
-  chain2$draws %>% select(iteration, Tech_Growth) %>% mutate(Chain = "Chain 2 (Seed 99)")
-)
+trace_df <- bind_rows(lapply(seq_along(all_chains), function(i)
+  all_chains[[i]]$draws %>% select(iteration, Tech_Growth) %>%
+    mutate(Chain = paste("Chain", i))))
+
 
 ggplot(trace_df, aes(x = iteration, y = Tech_Growth, color = Chain)) +
   geom_line(alpha = 0.75, linewidth = 0.5) +
   geom_vline(xintercept = 500, linetype = "dashed", color = "#c0392b", linewidth = 0.8) +
   annotate("text", x = 520, y = max(trace_df$Tech_Growth) * 0.9, label = "End of Burn-In (500)", fontface = "bold", color = "#c0392b", hjust = 0, size = 3.5) +
-  scale_color_manual(values = c("#1b4f72", "#e67e22")) +
+  scale_color_manual(values = c("#1b4f72", "#e67e22", "#27ae60", "#8e44ad")) +
   scale_y_continuous(labels = label_percent(accuracy = 0.01)) +
   labs(
     title = "Multi-Chain Stationarity Diagnostic: Tech Growth Exposure",
@@ -135,10 +157,43 @@ ggplot(trace_df, aes(x = iteration, y = Tech_Growth, color = Chain)) +
 
 ```
 
-**Diagnostic Review: Multi-Chain Trace**
 
-1. **Stationary Overlap:** Discarding the first 500 iterations eliminates initial burn-in, after which both chains traverse the same posterior band.
-2. **Initialization Distance Note:** The initialization vectors (‭$\mathbf{0}$‬ vs. ‭$0.001 \cdot \mathbf{1}$‬‭‬) differ by approximately 25 basis points annualized. While this demonstrates local convergence into the posterior mode, formal model validation typically tests widely separated, overdispersed starting values (e.g., ‭$\pm 3 \cdot \text{SE}$‬‭‬) across 4 or more chains to confirm mixing across distant regions of parameter space.
+
+
+```{r}
+#| label: tbl-rhat
+#| echo: false
+
+rhat_tbl <- tibble(
+  Factor = asset_names,
+  Split_Rhat = sapply(asset_names, function(a)
+    compute_split_rhat(lapply(draws_clean, function(dc) dc[[a]])))
+) %>%
+  mutate(Status = if_else(Split_Rhat < 1.01, "Converged", "Not converged"))
+
+n_fail <- sum(rhat_tbl$Split_Rhat >= 1.01)
+max_rhat <- sprintf("%.3f", max(rhat_tbl$Split_Rhat))
+
+rhat_tbl %>%
+  gt() %>%
+  tab_header(
+    title = md("**Split-R̂ Convergence Audit (4 Chains)**"),
+    subtitle = "Threshold: R̂ < 1.01 (Vehtari et al., 2021)"
+  ) %>%
+  fmt_number(columns = Split_Rhat, decimals = 3) %>%
+  tab_options(table.font.size = 12)
+```
+
+
+**Diagnostic Review: Multi-Chain Trace and Split-\\(\\hat{R}\\)**
+
+Four chains were run: one from \\(\\mathbf{0}\\) and three from starting 
+points \\(\\pm 3\\) posterior standard deviations from the posterior center 
+(all high, all low, and mixed). `r n_fail` of `r d` factors exceed the 
+\\(\\hat{R} < 1.01\\) threshold, and the maximum split-\\(\\hat{R}\\) is 
+`r max_rhat`.
+
+Chains started far apart have not fully mixed within 3,000 iterations, which is consistent with the low ESS reported below.”
 
 ---
 
@@ -226,19 +281,74 @@ tibble(
 ```
 
 
+```{r}
+#| label: ess-findings-stats
+#| echo: false
+
+ess_ref <- round(c(
+  posterior::ess_basic(draws1_clean$Tech_Growth),
+  posterior::ess_basic(draws1_clean$US_Treas_10Y),
+  posterior::ess_basic(draws1_clean$US_LargeCap)
+), 1)
+
+eff_tech  <- sprintf("%.1f%%", ess_tech / nrow(draws1_clean) * 100)
+ess_min   <- min(ess_tech, ess_treas, ess_large)
+ess_max   <- max(ess_tech, ess_treas, ess_large)
+
+# Monte Carlo SE of the posterior mean, as a share of the posterior SD
+mcse_share_tech <- sprintf("%.0f%%", 100 / sqrt(ess_tech))
+```
+
+
 **Model Validation Findings**
 
 A model validation review of the ESS diagnostics yields three key takeaways:
 
-1 **Sampling Efficiency Reflects Correlation Drag:** Out of `{r} txt_n_draws` post-burn iterations, Tech Growth yields `{r} txt_ess_tech` effective independent draws—a sampling efficiency of approximately 1.5% to 2.0%. While the acceptance rate of `{r} txt_acc_c1` falls within standard aggregate ranges, the chain experiences high serial correlation due to isotropic proposal variance. <br/>
-2. **Quantile Precision Considerations:** Established Bayesian validation standards (Vehtari et al., 2021) recommend an ESS of at least 300 to 400 draws to produce stable tail quantiles and bound Monte Carlo standard error. While an ESS of ‭$\approx 39\text{--}82$‬‭‬‭‬ draws is sufficient to estimate the posterior mean vector, downstream tail risk quantiles (such as 95% VaR and Expected Shortfall credible intervals) retain non-trivial Monte Carlo variance. <br/>
-3. **Paths to Algorithmic Improvement:** This diagnostic demonstrates the trade-offs of first-principles isotropic Random-Walk Metropolis. In production risk environments, proposal efficiency can be improved by:
+1. **Sampling Efficiency Reflects Correlation Drag:** Out of 
+`r txt_n_draws` post-burn iterations, Tech Growth yields only 
+`r txt_ess_tech` effective independent draws, a sampling efficiency of 
+`r eff_tech`. Across the three audited factors, ESS ranges from 
+`r ess_min` to `r ess_max`. The acceptance rate of `r txt_acc_c1` falls 
+within the conventional range, which shows that a healthy acceptance 
+rate does not guarantee good mixing. The single, isotropic proposal 
+step is too small for high-variance factors such as Tech Growth, so 
+the chain crosses their posterior range slowly.
 
--   **Proposal Covariance Preconditioning:** Scaling jumps using the empirical covariance matrix ‭$\mathbf{\Sigma}_{\text{prop}} = \frac{2.38^2}{d} \hat{\mathbf{\Sigma}}_{\text{post}}$‬‭‬‭‬ (Roberts & Rosenthal, 2001).
--	 **Adaptive Sampling:** Implementing adaptive Metropolis algorithms to dynamically learn posterior geometry.
--	 **Gradient-Based Methods:** Using Hamiltonian Monte Carlo (HMC) or NUTS to navigate high-dimensional curvature efficiently.
+2. **Independent Verification of the Estimator:** ESS values from 
+`compute_ess_robust()` (Geyer initial monotone sequence) were 
+cross-checked against `posterior::ess_basic()`, which returned 
+`r ess_ref[1]`, `r ess_ref[2]`, and `r ess_ref[3]` for Tech Growth, 
+Treasuries, and US Large Cap. The two estimators agree closely. The 
+reference package reads slightly lower because it uses split chains 
+and a more conservative truncation rule.
 
-See the exact-posterior benchmark on the Portfolio Risk page for the effect of low ESS on credible-interval width.
+3. **Quantile Precision Considerations:** Vehtari et al. (2021) 
+recommend an ESS of at least 400 for reliable posterior summaries, 
+and more for tail quantiles. Current ESS values of `r ess_min`–`r ess_max` 
+fall well short. Even the posterior mean is imprecise: with an ESS of 
+`r ess_tech`, the Monte Carlo standard error for Tech Growth is about 
+`r mcse_share_tech` of a posterior standard deviation. The 5th and 95th 
+percentiles that define the VaR and Expected Shortfall credible 
+intervals are less stable still. The exact-posterior benchmark on the 
+Portfolio Risk page shows the practical result: the MCMC credible 
+intervals are too narrow, understating parameter risk.
+
+4. **Paths to Algorithmic Improvement:** This diagnostic shows the 
+trade-offs of first-principles isotropic Random-Walk Metropolis. In 
+production risk environments, sampling efficiency can be improved by:
+
+    - **Proposal Covariance Preconditioning:** Scaling jumps to the 
+      posterior geometry using 
+      \\(\\boldsymbol{\\Sigma}\_{\\text{prop}} = \\frac{2.38^2}{d}\\hat{\\boldsymbol{\\Sigma}}\_{\\text{post}}\\) 
+      (Roberts & Rosenthal, 2001).
+    - **Adaptive Sampling:** Adaptive Metropolis algorithms that learn 
+      the posterior covariance during the run (Haario et al., 2001).
+    - **Gradient-Based Methods:** Hamiltonian Monte Carlo (HMC) or NUTS, 
+      which use gradient information to move efficiently through 
+      high-dimensional, correlated posteriors.
+
+See the exact-posterior benchmark on the Portfolio Risk page for the 
+effect of low ESS on credible-interval width.
 
 ---
 

@@ -1,7 +1,7 @@
 
 project:
   type: website
-  output-dir: _docs
+  output-dir: docs
 
 website:
   title: "Markov Chain Monte Carlo in Action"

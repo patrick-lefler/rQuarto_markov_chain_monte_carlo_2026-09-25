@@ -117,12 +117,12 @@ plot_random_walk_2d(hero_chain$draws, n_steps = 180)
 ---
 
 ### Project Structure & Roadmap
+
 This project demonstrates the implementation, diagnostic auditing, and tail-risk application of first-principles MCMC:
 
-[The Metropolis Engine](https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/01-mechanics.html): The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.
+- [The Metropolis Engine](01-mechanics.qmd): The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.
+- [Portfolio Risk Model](02-risk-application.qmd): Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES), benchmarked against the exact closed-form posterior.
+- [Audit & Diagnostics](03-reproducibility.qmd): Four-chain convergence checks with split-$\hat{R}$, autocorrelation decay, and Effective Sample Size (ESS) audits cross-checked against the `posterior` package.
 
-[Portfolio Risk Model](https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/02-risk-application.html): Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES) against closed-form benchmarks.
-
-[Audit & Diagnostics](https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo_2026-09-25/03-reproducibility.html): Verification of chain mixing, autocorrelation decay, split-‭$\hat{R}$‬, and robust Effective Sample Size (ESS) audits.
 
 
