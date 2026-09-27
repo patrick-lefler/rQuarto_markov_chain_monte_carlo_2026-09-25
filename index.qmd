@@ -3,7 +3,31 @@ title: "The Mechanics of Markov Chain Monte Carlo"
 subtitle: "Benchmarking First-Principles Parameter Exploration in Correlated Factor Spaces"
 author: "Patrick Lefler"
 date: "September 24, 2026"
-abstract: "Evaluating joint factor distributions in portfolio risk models often encounters the curse of dimensionality, where deterministic numerical grid integration scales exponentially with dimension ($K^D$). This project implements a Random-Walk Metropolis sampler from first principles in pure R, without external sampler libraries, to assess parameter uncertainty across a 10-factor portfolio spanning equity, credit, duration, and commodity exposures. To provide a rigorous validation baseline, we examine a multivariate Gaussian return model where the covariance matrix is conditioned on sample estimates, yielding an exact analytical posterior: $\\boldsymbol{\\mu} \\mid \\mathbf{R}, \\mathbf{\\Sigma} \\sim \\mathcal{N}(\\bar{\\mathbf{x}}, \\frac{1}{n}\\mathbf{\\Sigma})$. This tractable benchmark allows us to directly evaluate MCMC visit frequencies and tail risk percentiles against closed-form mathematical truth. Propagating sampled parameter draws into Value at Risk (1.05%) and Expected Shortfall (1.33%) quantifies the shift in downside capital attributable to parameter uncertainty in the mean vector ($\\pm 1.645 \\cdot \\sigma_p / \\sqrt{n}$). Diagnostic audits—including multi-chain trace evaluations, autocorrelation profiles, and robust Effective Sample Size (ESS) calculations following Vehtari et al. (2021)—demonstrate that while isotropic random-walk proposals successfully identify the posterior mode, unscaled jump proposals on correlated distributions incur substantial serial correlation, underscoring the operational necessity of covariance preconditioning in institutional risk engines."
+abstract: "Portfolio risk models must estimate many correlated parameters at once, 
+and deterministic grid integration becomes impractical as the number of 
+dimensions grows (\\(K^D\\)). This project builds a Random-Walk Metropolis 
+sampler from first principles in R, with no MCMC libraries, and applies 
+it to the expected returns of a 10-factor portfolio spanning equity, 
+credit, duration, and commodity exposures. The model is deliberately 
+chosen to have an exact answer: with multivariate normal returns and 
+covariance fixed at its sample estimate, the posterior is 
+\\(\\boldsymbol{\\mu} \\mid \\mathbf{R}, \\mathbf{\\Sigma} \\sim \\mathcal{N}(\\bar{\\mathbf{x}}, \\tfrac{1}{n}\\mathbf{\\Sigma})\\). This lets every MCMC output be checked against closed-form truth.
+
+The results show how a sampler can look healthy and still understate risk. 
+At a 28.9% acceptance rate, well within conventional targets, the chain 
+reproduces the exact posterior means of Value at Risk (1.05%) and Expected 
+Shortfall (1.33%). The diagnostics tell a different story. All ten factors 
+are at or above the split-\\(\\hat{R}\\) convergence threshold of 1.01 across 
+four chains (maximum 1.057). Effective Sample Size is only 16–65 out of 
+2,500 post-burn draws, far below the recommended 400. Most important for 
+risk reporting, the MCMC credible interval for VaR is about 17% narrower 
+than the exact interval, so the sampler understates parameter uncertainty.
+
+The cause is a single isotropic proposal step applied to factors with very 
+different scales and strong correlations. The findings show why acceptance 
+rates alone are not sufficient evidence of convergence, and why production 
+risk engines need covariance-preconditioned or gradient-based samplers, 
+validated with multi-chain diagnostics and, where possible, exact benchmarks."
 ---
 
 ```{r setup, include=FALSE}
@@ -36,7 +60,9 @@ hero_chain <- run_metropolis(
 
 ### Introduction
 Markov Chain Monte Carlo (MCMC) is a computational class of algorithms designed to sample from complex, high-dimensional probability distributions when analytical integration is intractable. In portfolio risk management, evaluating joint risk across multiple assets requires characterizing dependent parameters simultaneously—including factor means, volatilities, and cross-asset correlations. For non-standard priors or complex likelihoods, deterministic numerical grid integration scales exponentially with dimension (‭$K^D$‬), quickly exceeding practical computational limits.
+
 MCMC bypasses deterministic grid mapping by replacing brute-force evaluation with an informed random walk. Guided by transition rules such as the Metropolis-Hastings criterion, the sampler proposes local moves, accepting higher-density coordinates and probabilistically accepting lower-density proposals. Over extended sampling runs, the chain visits parameter states in proportion to their underlying posterior density, mapping the target space without evaluating intractable normalizing constants.
+
 In this demonstration, we focus on isolating parameter estimation uncertainty. Using a controlled multivariate Gaussian portfolio framework, we deliberately pair our pure-R Metropolis sampler against a model with an exact analytical solution: ‭$\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \frac{1}{n}\mathbf{\Sigma})$‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬. By holding covariance fixed and evaluating expected returns against this closed-form baseline, we provide an auditable environment to examine convergence, proposal efficiency, and the propagation of parameter uncertainty into Value at Risk (VaR) and Expected Shortfall (ES).
 
 ---
@@ -120,7 +146,7 @@ plot_random_walk_2d(hero_chain$draws, n_steps = 180)
 
 This project demonstrates the implementation, diagnostic auditing, and tail-risk application of first-principles MCMC:
 
-- [The Metropolis Engine](01-mechanics.qmd): The pure R implementation from scratch, detailing acceptance ratios and proposal step-size calibration.
+- [The Metropolis Engine](01-mechanics.qmd): The R implementation from scratch (without MCMC libraries), detailing acceptance ratios and proposal step-size calibration.
 - [Portfolio Risk Model](02-risk-application.qmd): Sampling the 10-factor posterior under fixed covariance to evaluate Value at Risk (VaR) and Expected Shortfall (ES), benchmarked against the exact closed-form posterior.
 - [Audit & Diagnostics](03-reproducibility.qmd): Four-chain convergence checks with split-$\hat{R}$, autocorrelation decay, and Effective Sample Size (ESS) audits cross-checked against the `posterior` package.
 

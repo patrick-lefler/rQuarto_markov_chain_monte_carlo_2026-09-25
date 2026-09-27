@@ -276,11 +276,9 @@ days_needed <- ceiling((sqrt(diag(model_fixture$cov_emp))["Tech_Growth"] / 0.000
 
 **Understanding the Marginal Density Plots**
 
-### Understanding the Marginal Density Plots
-
 **Tech Growth:** The posterior centers on the sample mean, 
-approximately `r pct(tech_mean)` daily, with a posterior standard 
-deviation of about `r pct(tech_sd)`. The 90% credible interval runs 
+approximately `r sprintf("%.2f%%", tech_mean*100)` daily, with a posterior standard 
+deviation of about `r sprintf("%.2f%%", tech_sd*100)`. The 90% credible interval runs 
 from `r pct(tech_ci[1])` to `r pct(tech_ci[2])`. The true value used 
 to generate the data, `r pct(true_tech, 3)` daily (+11.0% annualized), 
 lies about `r sprintf("%.1f", tech_z)` posterior standard deviations 
@@ -302,6 +300,6 @@ Narrowing Tech Growth's uncertainty to 0.01% daily would take about
 
 ::: {.callout-important icon = false}
 ## Key Takeaway: Parameter Recovery Is a Data Problem, Not a Sampler Problem
-MCMC recovers the **posterior**, not the **truth**. With 250 daily observations, mean returns are poorly identified: Tech Growth's posterior standard deviation (≈0.10% daily) is more than twice its true mean. Narrowing that uncertainty to about 0.01% daily would take roughly 27,000 trading days of data. For risk managers, a year of history can't reliably tell a high-drift asset from a low-drift one. That estimation uncertainty is exactly what the VaR and ES credible intervals are meant to capture.
+MCMC recovers the **posterior**, not the **truth**. With 250 daily observations, mean returns are poorly identified: Tech Growth's posterior standard deviation (≈0.10% daily) is more than twice its true mean. Narrowing that uncertainty to about 0.01% daily would take roughly  `r format(days_needed, big.mark=",")` trading days of data. For risk managers, a year of history can't reliably tell a high-drift asset from a low-drift one. That estimation uncertainty is exactly what the VaR and ES credible intervals are meant to capture.
 :::
 

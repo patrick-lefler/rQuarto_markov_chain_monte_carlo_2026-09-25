@@ -128,9 +128,13 @@ In quantitative validation workflows, evaluating an MCMC sampler involves three 
 
 
 ### Multi-Chain Mixing Verification
-To evaluate convergence, two independent chains are tracked from distinct initialization vectors (‭$\boldsymbol{\theta}^{(0)}_1 = \mathbf{0}$‬‭‬ vs. ‭$\boldsymbol{\theta}^{(0)}_2 = 0.001 \cdot \mathbf{1}$‬‭‬‭‬).
 
-```{r multi-chain-trace, fig.cap = "Figure 1: Two independent MCMC chains tracking Tech Growth expected returns"}
+To evaluate convergence, four independent chains are run: one from 
+\\(\\boldsymbol{\\theta}^{(0)} = \\mathbf{0}\\) and three from overdispersed 
+starting points at \\(\\pm 3\\) posterior standard deviations from the 
+posterior center (all high, all low, and mixed).
+
+```{r multi-chain-trace, fig.cap = "Figure 1: Four chains with ±3 SD starts"}
 
 #| fig-width: 10
 #| fig-height: 8
@@ -148,7 +152,7 @@ ggplot(trace_df, aes(x = iteration, y = Tech_Growth, color = Chain)) +
   scale_y_continuous(labels = label_percent(accuracy = 0.01)) +
   labs(
     title = "Multi-Chain Stationarity Diagnostic: Tech Growth Exposure",
-    subtitle = "Both chains navigate into the stationary posterior distribution",
+    subtitle = "Four chains from overdispersed starts; Chain 3 has not reached the posterior band by the end of burn-in",
     x = "Iteration Step",
     y = "Daily Expected Return",
     color = "Sampler Execution"
@@ -177,9 +181,10 @@ max_rhat <- sprintf("%.3f", max(rhat_tbl$Split_Rhat))
 rhat_tbl %>%
   gt() %>%
   tab_header(
-    title = md("**Split-R̂ Convergence Audit (4 Chains)**"),
-    subtitle = "Threshold: R̂ < 1.01 (Vehtari et al., 2021)"
+    title = md("**Split-R&#770; Convergence Audit (4 Chains)**"),
+    subtitle = md("Threshold: split-R&#770; < 1.01 (Vehtari et al., 2021)")
   ) %>%
+  cols_label(Split_Rhat = md("Split-R&#770;")) %>%
   fmt_number(columns = Split_Rhat, decimals = 3) %>%
   tab_options(table.font.size = 12)
 ```
@@ -189,11 +194,14 @@ rhat_tbl %>%
 
 Four chains were run: one from \\(\\mathbf{0}\\) and three from starting 
 points \\(\\pm 3\\) posterior standard deviations from the posterior center 
-(all high, all low, and mixed). `r n_fail` of `r d` factors exceed the 
-\\(\\hat{R} < 1.01\\) threshold, and the maximum split-\\(\\hat{R}\\) is 
-`r max_rhat`.
+(all high, all low, and mixed). All `r d` factors fail the \\(\\hat{R} < 1.01\\) threshold, with a maximum 
+split-\\(\\hat{R}\\) of `r max_rhat` (Tech Growth). US Treasuries sits exactly at the threshold.
 
-Chains started far apart have not fully mixed within 3,000 iterations, which is consistent with the low ESS reported below.”
+The trace also shows that the 500-iteration burn-in is insufficient: 
+Chain 3, started at \\(-3\\) posterior SDs, does not reach the posterior 
+band until roughly iteration 700.
+
+Chains started far apart have not fully mixed within 3,000 iterations, which is consistent with the low ESS reported below.
 
 ---
 
@@ -250,10 +258,27 @@ To avoid truncation bias in persistent chains, Effective Sample Size is computed
 
 ```{r ess-table}
 
+# Combine one factor's draws from all 4 chains into a 2,500 x 4 matrix
+chain_matrix <- function(factor) {
+  sapply(draws_clean, function(dc) dc[[factor]])
+}
+
+factors_audit <- c("Tech_Growth", "US_Treas_10Y", "US_LargeCap")
+
+ess_pooled_bulk <- sapply(factors_audit, function(f)
+  round(posterior::ess_bulk(chain_matrix(f))))
+ess_pooled_tail <- sapply(factors_audit, function(f)
+  round(posterior::ess_tail(chain_matrix(f))))
+
+n_total <- nrow(draws1_clean) * length(draws_clean)   # 10,000
+
+
 tibble(
   Asset_Class = c("Equity Beta (Tech Growth)", "Duration Hedge (10Y Treasuries)", "Core Market (US Large Cap)"),
   Total_Post_Burn_Draws = rep(nrow(draws1_clean), 3),
   Effective_Sample_Size = c(ess_tech, ess_treas, ess_large),
+    Pooled_Bulk_ESS = ess_pooled_bulk,
+  Pooled_Tail_ESS = ess_pooled_tail,
   Sampling_Efficiency = c(ess_tech, ess_treas, ess_large) / nrow(draws1_clean),
   Autocorrelation_Lag10 = c(
     acf(draws1_clean$Tech_Growth, plot = FALSE)$acf[11],
@@ -270,6 +295,8 @@ tibble(
     Asset_Class = "Risk Factor Asset",
     Total_Post_Burn_Draws = "Post-Burn Draws",
     Effective_Sample_Size = "Effective Draws (ESS)",
+    Pooled_Bulk_ESS = "Bulk ESS (4 chains)",
+    Pooled_Tail_ESS = "Tail ESS (4 chains)",
     Sampling_Efficiency = "Efficiency Ratio",
     Autocorrelation_Lag10 = "Lag-10 Autocorr"
   ) %>%
@@ -299,9 +326,12 @@ ess_max   <- max(ess_tech, ess_treas, ess_large)
 mcse_share_tech <- sprintf("%.0f%%", 100 / sqrt(ess_tech))
 ```
 
+Pooled across all four chains (`r n_total` draws), bulk ESS for Tech 
+Growth is `r ess_pooled_bulk[1]` and tail ESS is `r ess_pooled_tail[1]`, 
+still well below the recommended 400, consistent with the split-\\(\\hat{R}\\) 
+results above.
 
-**Model Validation Findings**
-
+**Model Validation Findings** <br/>
 A model validation review of the ESS diagnostics yields three key takeaways:
 
 1. **Sampling Efficiency Reflects Correlation Drag:** Out of 
