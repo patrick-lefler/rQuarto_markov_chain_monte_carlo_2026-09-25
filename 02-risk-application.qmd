@@ -62,7 +62,7 @@ n_draws_txt    <- comma(nrow(post_burn_draws))
 ```
 
 ### Sampling the 10-Factor Joint Posterior
-The sampler processes 250 trading days of observed returns across all 10 assets simultaneously. Starting cold at ‭$\boldsymbol{\mu}_0 = \mathbf{0}$‬‭‬, the chain completes 3,000 iterations, discarding the first 500 iterations to eliminate initialization bias.
+The sampler processes 250 trading days of observed returns across all 10 assets simultaneously. Starting cold at $\boldsymbol{\mu}_0 = \mathbf{0}$, the chain completes 3,000 iterations, discarding the first 500 iterations to eliminate initialization bias.
 The chain operates at an empirical acceptance rate of `{r} acc_rate_txt`.
 
 ```{r factor-risk-table, echo = TRUE}
@@ -86,10 +86,10 @@ risk_table %>%
 
 
 #### Context: Isolating Parameter Risk in the Mean Vector
-Because the return distribution is modeled as multivariate normal and ‭$\mathbf{\Sigma}$‬ is fixed at the sample estimate, the portfolio tail metrics reflect the properties of Gaussian loss distributions under estimation uncertainty:
+Because the return distribution is modeled as multivariate normal and $\mathbf{\Sigma}$ is fixed at the sample estimate, the portfolio tail metrics reflect the properties of Gaussian loss distributions under estimation uncertainty:
 
-1. **Mean Uncertainty Bounds (‭$\text{VaR}_{95\%}$‬):** For an equal-weighted portfolio, parametric Value at Risk is governed by ‭$\text{VaR}_{95\%} \approx -\mathbf{w}'\boldsymbol{\mu} + 1.645 \cdot \sigma_p$‬‭‬‭‬‭‬‭‬‭‬. Because covariance is held constant, the 12 basis point spread between the 5th and 95th percentiles (‭$0.99\%$‬‭‬ to ‭$1.11\%$‬‭‬) reflects the estimation uncertainty of the portfolio mean alone (‭$\pm 1.645 \cdot \sigma_p / \sqrt{n}$‬‭‬‭‬), setting aside covariance uncertainty.
-2. **Expected Shortfall Ratio (‭$\text{ES}_{95\%}$‬):** The ratio of Expected Shortfall to Value at Risk (‭$1.33\% / 1.05\% \approx 1.27$‬‭‬ ‭‬‭‬ ‭‬) reflects standard Gaussian tail expectation constants (‭$\approx 2.063 / 1.645$‬‭‬), adjusted for the portfolio drift. Under a normal likelihood, this metric captures linear downside expectation rather than excess kurtosis or heavy-tailed structural shocks.
+1. **Mean Uncertainty Bounds ($\text{VaR}_{95\%}$):** For an equal-weighted portfolio, parametric Value at Risk is governed by $\text{VaR}_{95\%} \approx -\mathbf{w}'\boldsymbol{\mu} + 1.645 \cdot \sigma_p$. Because covariance is held constant, the 12 basis point spread between the 5th and 95th percentiles ($0.99\%$ to $1.11\%$) reflects the estimation uncertainty of the portfolio mean alone ($\pm 1.645 \cdot \sigma_p / \sqrt{n}$), setting aside covariance uncertainty.
+2. **Expected Shortfall Ratio ($\text{ES}_{95\%}$):** The ratio of Expected Shortfall to Value at Risk ($1.33\% / 1.05\% \approx 1.27$  ) reflects standard Gaussian tail expectation constants ($\approx 2.063 / 1.645$), adjusted for the portfolio drift. Under a normal likelihood, this metric captures linear downside expectation rather than excess kurtosis or heavy-tailed structural shocks.
 
 ### Benchmarking MCMC Against the Exact Posterior
 

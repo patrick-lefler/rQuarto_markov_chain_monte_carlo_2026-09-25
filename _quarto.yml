@@ -28,5 +28,6 @@ format:
     theme: sandstone
     toc: true
     toc-depth: 3
-    
+    embed-resources: true
+    self-contained-math: true
     

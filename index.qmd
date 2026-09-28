@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 library(dplyr)
 library(gt)
+library(reactable)
 library(scales)
 
 source("R/metropolis_sampler.R")
@@ -79,11 +80,11 @@ a production risk model. Its results should be read with these constraints in mi
 ---
 
 ### Introduction
-Markov Chain Monte Carlo (MCMC) is a computational class of algorithms designed to sample from complex, high-dimensional probability distributions when analytical integration is intractable. In portfolio risk management, evaluating joint risk across multiple assets requires characterizing dependent parameters simultaneously—including factor means, volatilities, and cross-asset correlations. For non-standard priors or complex likelihoods, deterministic numerical grid integration scales exponentially with dimension (‭$K^D$‬), quickly exceeding practical computational limits.
+Markov Chain Monte Carlo (MCMC) is a computational class of algorithms designed to sample from complex, high-dimensional probability distributions when analytical integration is intractable. In portfolio risk management, evaluating joint risk across multiple assets requires characterizing dependent parameters simultaneously—including factor means, volatilities, and cross-asset correlations. For non-standard priors or complex likelihoods, deterministic numerical grid integration scales exponentially with dimension ($K^D$), quickly exceeding practical computational limits.
 
 MCMC bypasses deterministic grid mapping by replacing brute-force evaluation with an informed random walk. Guided by transition rules such as the Metropolis-Hastings criterion, the sampler proposes local moves, accepting higher-density coordinates and probabilistically accepting lower-density proposals. Over extended sampling runs, the chain visits parameter states in proportion to their underlying posterior density, mapping the target space without evaluating intractable normalizing constants.
 
-In this demonstration, we focus on isolating parameter estimation uncertainty. Using a controlled multivariate Gaussian portfolio framework, we deliberately pair our pure-R Metropolis sampler against a model with an exact analytical solution: ‭$\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \frac{1}{n}\mathbf{\Sigma})$‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬. By holding covariance fixed and evaluating expected returns against this closed-form baseline, we provide an auditable environment to examine convergence, proposal efficiency, and the propagation of parameter uncertainty into Value at Risk (VaR) and Expected Shortfall (ES).
+In this demonstration, we focus on isolating parameter estimation uncertainty. Using a controlled multivariate Gaussian portfolio framework, we deliberately pair our pure-R Metropolis sampler against a model with an exact analytical solution: $\boldsymbol{\mu} \mid \mathbf{R}, \mathbf{\Sigma} \sim \mathcal{N}(\bar{\mathbf{x}}, \frac{1}{n}\mathbf{\Sigma})$  . By holding covariance fixed and evaluating expected returns against this closed-form baseline, we provide an auditable environment to examine convergence, proposal efficiency, and the propagation of parameter uncertainty into Value at Risk (VaR) and Expected Shortfall (ES).
 
 ---
 
@@ -95,7 +96,7 @@ Because you spend most of your time traversing higher ridges and pass quickly th
 
 ### The Dimensional Scaling Challenge
 When managing risk across multiple correlated factors—equity betas, credit spreads, duration, and commodities—quantifying joint parameter uncertainty is essential.
-In low dimensions, deterministic numerical quadratures or grid evaluations are trivial. However, as the parameter count (‭$D$‬) increases, Cartesian grid evaluations scale exponentially (‭$K^D$‬).
+In low dimensions, deterministic numerical quadratures or grid evaluations are trivial. However, as the parameter count ($D$) increases, Cartesian grid evaluations scale exponentially ($K^D$).
 
 ```{r grid-breakdown-table, echo = TRUE}
 
@@ -108,11 +109,15 @@ generate_dimension_comparison() %>%
   cols_label(
     Dimensions = "Factor Horizon",
     Grid_Points_Per_Axis = "Points / Axis",
-    Total_Grid_Evaluations = "Grid Evaluations ($K^D$)",
+    Total_Grid_Evaluations = html("Grid Evaluations (K<sup>D</sup>)"),
     Grid_Feasibility = "Grid Feasibility",
     MCMC_Iterations_Required = "Target MCMC Draws",
     MCMC_Solve_Time = "Observed MCMC Time"
   ) %>%
+  text_transform(
+  locations = cells_body(columns = Total_Grid_Evaluations),
+  fn = function(x) gsub("10\\^(\\d+)", "10<sup>\\1</sup>", x)
+) %>%
   tab_style(
     style = cell_text(weight = "bold", color = "#c0392b"),
     locations = cells_body(columns = Total_Grid_Evaluations, rows = 2:3)
@@ -125,18 +130,18 @@ generate_dimension_comparison() %>%
 
 ```
 
-**Low-Dimensional Space (‭$D = 2$‬‭‬):** A coarse 10-point grid requires only ‭$10^2 = 100$‬‭‬ function evaluations, making numerical quadratures instantaneous.
+**Low-Dimensional Space ($D = 2$):** A coarse 10-point grid requires only $10^2 = 100$ function evaluations, making numerical quadratures instantaneous.
 
-**Moderate Parameter Space (‭$D = 10$‬‭‬):** Uniform evaluation along each axis requires ‭$10^{10}$‬ calculations (10 billion operations)—creating significant runtime bottlenecks in standard computing environments, whereas stochastic sampling traverses the distribution in seconds.
+**Moderate Parameter Space ($D = 10$):** Uniform evaluation along each axis requires $10^{10}$ calculations (10 billion operations)—creating significant runtime bottlenecks in standard computing environments, whereas stochastic sampling traverses the distribution in seconds.
 
-**Full Covariance Horizon (‭$D = 20$‬‭‬):** Modeling 20 factor means alongside full cross-asset covariances involves ‭$D + D(D+1)/2 = 230$‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬ distinct parameters. Evaluating such spaces on uniform deterministic grids is computationally intractable, making stochastic simulation essential for non-conjugate structures.
+**Full Covariance Horizon ($D = 20$):** Modeling 20 factor means alongside full cross-asset covariances involves $D + D(D+1)/2 = 230$ distinct parameters. Evaluating such spaces on uniform deterministic grids is computationally intractable, making stochastic simulation essential for non-conjugate structures.
 
 ---
 
 ### The Random Walk Engine
 Markov Chain Monte Carlo navigates probability distributions via sequential, localized transitions:
 
-1. **Propose a Move:** The chain samples a candidate coordinate ‭$\theta^*$‬ from a proposal distribution centered on the current state ‭$\theta^{(t)}$‬.
+1. **Propose a Move:** The chain samples a candidate coordinate $\theta^*$ from a proposal distribution centered on the current state $\theta^{(t)}$.
 2. **Evaluate Density Ratio:** It computes the target posterior probability ratio between candidate and current locations.
 3. **Accept or Reject:** Proposals into higher-density regions are accepted; lower-density moves are accepted probabilistically, enabling the chain to explore parameter tails.
 
@@ -171,4 +176,16 @@ This project demonstrates the implementation, diagnostic auditing, and tail-risk
 - [Audit & Diagnostics](03-reproducibility.qmd): Four-chain convergence checks with split-$\hat{R}$, autocorrelation decay, and Effective Sample Size (ESS) audits cross-checked against the `posterior` package.
 
 
+
+
+```{css, echo = FALSE}
+.react_table {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  max-height: 600px;
+}
+
+```
 

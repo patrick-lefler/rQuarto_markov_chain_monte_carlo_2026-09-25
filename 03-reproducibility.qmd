@@ -88,9 +88,9 @@ In institutional risk management, stochastic simulation models must be transpare
 This audit page examines the algorithmic health checks for the 10-dimensional Gaussian random walk. We evaluate multi-chain convergence, measure autocorrelation decay across factor lags, and apply Geyer's initial sequence estimator to compute robust Effective Sample Size (ESS). This diagnostic audit outlines both the utility of Random-Walk Metropolis and the operational limitations encountered when isotropic proposals are applied to correlated factor distributions.
 
 ### Dataset Architecture & Methodological Rationale
-The analysis utilizes a fixed synthetic fixture of 250 trading days across 10 correlated asset classes (data/synthetic_returns.csv), generated from a known multivariate normal distribution ‭$\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})$‬‭‬‭‬‭‬ ‭‬‭‬ calibrated to realistic risk levels: annualized returns between 3.5% and 11.0%, volatilities between 8.0% and 26.0%, and correlations from -0.30 to +0.78.
+The analysis utilizes a fixed synthetic fixture of 250 trading days across 10 correlated asset classes (data/synthetic_returns.csv), generated from a known multivariate normal distribution $\mathcal{N}(\boldsymbol{\mu}, \mathbf{\Sigma})$  calibrated to realistic risk levels: annualized returns between 3.5% and 11.0%, volatilities between 8.0% and 26.0%, and correlations from -0.30 to +0.78.
 
-Using a synthetic baseline provides a controlled ground truth. In empirical market feeds, true data-generating distributions are obscured by regime shifts, structural breaks, and survivorship bias. By defining a synthetic population, we establish an explicit benchmark to test whether the sampler recovers sample parameters. Evaluating 10 factors illustrates the scaling challenge where uniform grid search (‭$10^{10}$‬ points) becomes computationally impractical, while 250 observations preserve realistic parameter standard errors for downside modeling.
+Using a synthetic baseline provides a controlled ground truth. In empirical market feeds, true data-generating distributions are obscured by regime shifts, structural breaks, and survivorship bias. By defining a synthetic population, we establish an explicit benchmark to test whether the sampler recovers sample parameters. Evaluating 10 factors illustrates the scaling challenge where uniform grid search ($10^{10}$ points) becomes computationally impractical, while 250 observations preserve realistic parameter standard errors for downside modeling.
 
 ```{r retrieve-data}
 
@@ -245,10 +245,10 @@ ggplot(acf_combined, aes(x = lag, y = autocorrelation, fill = factor)) +
 
 **Diagnostic Analysis: The Proposal-Geometry Mismatch**
 
-The autocorrelation profiles highlight an operational challenge when using an unscaled, isotropic proposal (‭$\sigma_\epsilon \mathbf{I}$‬‭‬) across correlated dimensions:
+The autocorrelation profiles highlight an operational challenge when using an unscaled, isotropic proposal ($\sigma_\epsilon \mathbf{I}$) across correlated dimensions:
 
 1. **Treasuries (10Y):** Autocorrelation decays quickly, dropping below 0.50 by lag 7 and reaching baseline levels near lag 20. With low return volatility (8%), the parameter space is compact.
-2. **Equity Beta (Tech Growth):** Autocorrelation exhibits high persistence, remaining around 0.65 at lag 35. Because the scalar proposal step (‭$\sigma_\epsilon = 0.00032$‬‭‬) is applied identically across all dimensions, it does not account for the differing scales (Treasuries ‭$\text{SE} \approx 0.03\%$‬‭‬‭‬ vs. Tech ‭$\text{SE} \approx 0.10\%$‬‭‬‭‬) or the correlated geometry of the target density. As a result, the chain traverses the principal variance axes slowly, leading to persistent serial correlation.
+2. **Equity Beta (Tech Growth):** Autocorrelation exhibits high persistence, remaining around 0.65 at lag 35. Because the scalar proposal step ($\sigma_\epsilon = 0.00032$) is applied identically across all dimensions, it does not account for the differing scales (Treasuries $\text{SE} \approx 0.03\%$ vs. Tech $\text{SE} \approx 0.10\%$) or the correlated geometry of the target density. As a result, the chain traverses the principal variance axes slowly, leading to persistent serial correlation.
 
 
 ---
@@ -326,7 +326,7 @@ ess_max   <- max(ess_tech, ess_treas, ess_large)
 mcse_share_tech <- sprintf("%.0f%%", 100 / sqrt(ess_tech))
 ```
 
-Pooled across all four chains `r format(n_total, big.mark=",")` draws), bulk ESS for Tech 
+Pooled across all four chains (`r format(n_total, big.mark=",")` draws), bulk ESS for Tech 
 Growth is `r ess_pooled_bulk[1]` and tail ESS is `r ess_pooled_tail[1]`, 
 still well below the recommended 400, consistent with the split-\\(\\hat{R}\\) 
 results above. Only the Treasury tail ESS (640) clears the threshold

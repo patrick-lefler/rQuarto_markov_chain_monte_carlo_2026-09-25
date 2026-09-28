@@ -28,23 +28,26 @@ chain_tuned <- run_metropolis(target_toy, initial_theta = c(0, 0), iterations = 
 
 ```
 
-The Four Steps of Metropolis-Hastings
+#### The Four Steps of Metropolis-Hastings
 Rather than solving high-dimensional integrals analytically, the Metropolis-Hastings algorithm generates samples from an unnormalized target density via four iterative steps: <br/>
 1. **Propose a Candidate Move:** 
-Given the current state ‭$\theta^{(t)}$‬, sample candidate coordinates ‭$\theta^*$‬ from a symmetric proposal distribution:
-‭$$\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)$$‬‭‬‭‬‭‬ ‭‬‭‬
-2. **Evaluate the Metropolis Acceptance Ratio (‭$\alpha$‬):** Compare target density at the candidate position to the current state:
-‭$$\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)$$‬‭‬‭‬‭‬ ‭‬
+Given the current state $\theta^{(t)}$, sample candidate coordinates $\theta^*$ from a symmetric proposal distribution:
+$$\theta^* \sim \mathcal{N}\left(\theta^{(t)}, \sigma_{\epsilon}^2 \mathbf{I}\right)$$ 
+2. **Evaluate the Metropolis Acceptance Ratio ($\alpha$):** Compare target density at the candidate position to the current state:
+$$\alpha = \min\left(1, \frac{p(\theta^*)}{p(\theta^{(t)})}\right)$$ 
 In practice, this is evaluated in log-space to prevent numerical floating-point underflow:
-‭$$\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)$$‬‭‬‭‬‭‬‭‬ ‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬‭‬
+$$\log \alpha = \min\left(0, \log p(\theta^*) - \log p(\theta^{(t)})\right)$$ 
 3. **The Acceptance Decision:**
-Draw a uniform scalar ‭$u \sim \text{Uniform}(0, 1)$‬‭‬‭‬‭‬‭‬ ‭‬‭‬. If ‭$\log u < \log \alpha$‬‭‬‭‬‭‬, the candidate is accepted:
-‭$$\theta^{(t+1)} = \theta^*$$‬‭‬
+Draw a uniform scalar $u \sim \text{Uniform}(0, 1)$ . If $\log u < \log \alpha$, the candidate is accepted:
+$$\theta^{(t+1)} = \theta^*$$
 Otherwise, the candidate is rejected, and the chain remains in place:
-‭$$\theta^{(t+1)} = \theta^{(t)}$$‬‭‬
-*Note: While occasionally accepting lower-density moves enables traversal across non-convex surfaces, standard Random-Walk Metropolis remains vulnerable to getting trapped between separated modes on complex, multimodal target surfaces.* <br/><br/>
+$$\theta^{(t+1)} = \theta^{(t)}$$
+
+::: {.callout-note icon = false}
+While occasionally accepting lower-density moves enables traversal across non-convex surfaces, standard Random-Walk Metropolis remains vulnerable to getting trapped between separated modes on complex, multimodal target surfaces.
+:::
 4. **Iterate:**
-Repeating this transition rule generates an empirical chain whose visited states converge asymptotically to the target posterior distribution ‭$p(\theta \mid \mathcal{D})$‬‭‬‭‬‭‬‭‬.
+Repeating this transition rule generates an empirical chain whose visited states converge asymptotically to the target posterior distribution $p(\theta \mid \mathcal{D})$.
 
 ---
 
@@ -124,7 +127,7 @@ run_metropolis <- function(target_log_posterior,
 ---
 
 ### The Step-Size Dilemma: Tuning Proposal Variance
-The primary operational lever in Random-Walk Metropolis is the proposal standard deviation (‭$\sigma_{\epsilon}$‬). Tuning this parameter governs the trade-off between spatial displacement per jump and proposal rejection frequency:
+The primary operational lever in Random-Walk Metropolis is the proposal standard deviation ($\sigma_{\epsilon}$). Tuning this parameter governs the trade-off between spatial displacement per jump and proposal rejection frequency:
 
 ```{r step-size-plot, fig.cap = "Figure 1: Trace plots illustrating the impact of proposal step size on chain mixing and acceptance"}
 
@@ -137,13 +140,13 @@ plot_step_size_comparison(chain_timid, chain_wild, chain_tuned)
 
 **Understanding the Trace Plots**
 
-The trace panels illustrate the trajectory of parameter ‭$\theta_1$‬ over 2,000 steps under three distinct proposal step sizes (‭$\sigma_\epsilon$‬), showing how proposal variance governs chain exploration:
+The trace panels illustrate the trajectory of parameter $\theta_1$ over 2,000 steps under three distinct proposal step sizes ($\sigma_\epsilon$), showing how proposal variance governs chain exploration:
 
-1. **Too Timid (‭$\sigma_{\epsilon} = 0.03$‬‭‬ — Bottom Panel):** Almost every proposal is accepted (98.5% acceptance), but displacement per step is small. The chain wanders sluggishly through diffusion rather than stationary mixing, exhibiting strong positive autocorrelation and requiring extensive iterations to traverse the distribution.
+1. **Too Timid ($\sigma_{\epsilon} = 0.03$ — Bottom Panel):** Almost every proposal is accepted (98.5% acceptance), but displacement per step is small. The chain wanders sluggishly through diffusion rather than stationary mixing, exhibiting strong positive autocorrelation and requiring extensive iterations to traverse the distribution.
 
-2. **Too Aggressive (‭$\sigma_{\epsilon} = 3.20$‬‭‬ — Middle Panel):** Large proposal jumps land frequently in low-probability density tails, leading to a rejection rate exceeding 90% (9.9% acceptance). The trace exhibits horizontal flatlines where the state remains frozen across multiple consecutive iterations.
+2. **Too Aggressive ($\sigma_{\epsilon} = 3.20$ — Middle Panel):** Large proposal jumps land frequently in low-probability density tails, leading to a rejection rate exceeding 90% (9.9% acceptance). The trace exhibits horizontal flatlines where the state remains frozen across multiple consecutive iterations.
 
-3. **Calibrated (‭$\sigma_{\epsilon} = 1.20$‬‭‬ — Top Panel):** Jump radius is balanced against target density gradients, achieving an empirical acceptance rate of approximately 34.2% (aligning with theoretical targets of 25% to 40% for low dimensions). The trajectory rapidly oscillates across the distribution center. However, while a calibrated acceptance rate is necessary, it does not alone guarantee rapid autocorrelation decay when applied to high-dimensional, correlated parameters.
+3. **Calibrated ($\sigma_{\epsilon} = 1.20$ — Top Panel):** Jump radius is balanced against target density gradients, achieving an empirical acceptance rate of approximately 34.2% (aligning with theoretical targets of 25% to 40% for low dimensions). The trajectory rapidly oscillates across the distribution center. However, while a calibrated acceptance rate is necessary, it does not alone guarantee rapid autocorrelation decay when applied to high-dimensional, correlated parameters.
 
 
 
