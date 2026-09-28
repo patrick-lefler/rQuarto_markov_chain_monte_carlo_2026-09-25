@@ -17,10 +17,14 @@ Correlated multi-asset portfolio risk requires a joint posterior over every fact
 ### Tech Stack
 
 Language: R
+
 Framework: Quarto multi-page site (Sandstone theme, navbar)
+
 Primary Libraries: tidyverse (dplyr, ggplot2, purrr, readr, stringr, tibble, tidyr), gt, reactable, scales, sessioninfo
+
 Deployment/Output: Four-page self-contained HTML site (index.qmd, 01-mechanics.qmd, 02-risk-application.qmd, 03-reproducibility.qmd)
-Repository Structure
+
+### Repository Structure
 
 ```
 mcmc-in-action/
