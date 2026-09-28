@@ -35,7 +35,7 @@ mcmc-in-action/
 │   ├── metropolis_sampler.R     # Pure R Metropolis-Hastings sampler
 |   |── plots.R                  # ggplot2 themes and diagnostic plots
 |   |── remediate.R              # R Remediation script 
-│   └──  risk_functions.R         # Joint log-posterior & tail risk evaluation
+│   └── risk_functions.R         # Joint log-posterior & tail risk evaluation
 └── data/
     └── synthetic_returns.csv # Frozen 250-day x 10-factor returns matrix
 ```
