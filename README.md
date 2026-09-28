@@ -9,7 +9,8 @@ Rendered link: https://patrick-lefler.github.io/rQuarto_markov_chain_monte_carlo
 ### Project Introduction
 
 An R Metropolis sampler replaces intractable grid integration with a random walk, pricing 10-factor portfolio VaR and Expected Shortfall in seconds.
-Overview
+
+### Overview
 
 Correlated multi-asset portfolio risk requires a joint posterior over every factor exposure at once, and grid integration collapses well before ten assets — roughly ten billion evaluations at that scale, and past what any machine can hold at twenty. This project implements a Metropolis-Hastings sampler from first principles in pure R and applies it to a ten-factor portfolio spanning equity, credit, duration, and commodity exposures. Instead of solving the posterior integral directly, the sampler takes a calibrated random walk through parameter space, converging on the true distribution in under two seconds. For investment committees and model-validation teams, the outcome is a Value-at-Risk and Expected Shortfall estimate with a full Bayesian credible interval, backed by convergence diagnostics an auditor can verify rather than a black-box output.
 
